@@ -40,20 +40,21 @@ enum RewardStatus {
 // ----------------------------------------------------------------------------
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique // toujours stocké en minuscules
-  emailVerified DateTime?
-  name          String? // nom fourni par Google (non affiché)
-  image         String? // photo Google (non utilisée : on affiche avatarUrl ou les initiales)
-  passwordHash  String? // null pour un compte Google uniquement
-  nickname      String?   @unique // surnom affiché, obligatoire après l'onboarding
-  nicknameKey   String?   @unique // surnom normalisé (minuscules, sans accents) pour l'unicité
-  avatarUrl     String? // photo de profil (Vercel Blob)
-  role          Role      @default(PLAYER)
-  disabled      Boolean   @default(false) // compte bloqué par l'ADMIN
-  tokenVersion  Int       @default(0) // incrémenté pour invalider les sessions JWT existantes
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id                 String    @id @default(cuid())
+  email              String    @unique // toujours stocké en minuscules
+  emailVerified      DateTime?
+  name               String? // nom fourni par Google (non affiché)
+  image              String? // photo Google (non utilisée : on affiche avatarUrl ou les initiales)
+  passwordHash       String? // null pour un compte Google uniquement
+  nickname           String?   @unique // surnom affiché, obligatoire après l'onboarding
+  nicknameKey        String?   @unique // surnom normalisé (minuscules, sans accents) pour l'unicité
+  avatarUrl          String? // photo de profil (Vercel Blob)
+  role               Role      @default(PLAYER)
+  disabled           Boolean   @default(false) // compte bloqué par l'ADMIN
+  tokenVersion       Int       @default(0) // incrémenté pour invalider les sessions JWT existantes
+  mustChangePassword Boolean   @default(false) // mot de passe temporaire défini par l'ADMIN
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   accounts       Account[]
   participations SessionParticipant[]

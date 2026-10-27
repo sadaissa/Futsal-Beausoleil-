@@ -17,11 +17,12 @@ joueur le plus souvent 1er reçoit une boisson… offerte par le plus souvent de
 6. [Installation en local](#installation-en-local)
 7. [Variables d’environnement](#variables-denvironnement)
 8. [Créer le compte ADMIN](#créer-le-compte-admin)
-9. [Configurer Google OAuth](#configurer-google-oauth)
-10. [Déployer sur Vercel](#déployer-sur-vercel)
-11. [Sécurité](#sécurité)
-12. [Protection anti-capture d’écran : limites](#protection-anti-capture-décran--limites)
-13. [Scripts utiles](#scripts-utiles)
+9. [Mot de passe oublié](#mot-de-passe-oublié)
+10. [Configurer Google OAuth](#configurer-google-oauth)
+11. [Déployer sur Vercel](#déployer-sur-vercel)
+12. [Sécurité](#sécurité)
+13. [Protection anti-capture d’écran : limites](#protection-anti-capture-décran--limites)
+14. [Scripts utiles](#scripts-utiles)
 
 ---
 
@@ -213,6 +214,18 @@ second ADMIN.
 
 > Fais-le immédiatement après la mise en ligne : tant qu’aucun ADMIN n’existe, toute personne connaissant la clé
 > pourrait l’utiliser. Après la création, tu peux supprimer `ADMIN_SETUP_SECRET`.
+
+## Mot de passe oublié
+
+L’application n’envoie pas d’e-mails (pas de service d’envoi configuré). Un joueur qui a oublié son mot de passe a
+deux solutions :
+
+1. **Se connecter avec Google** (si son adresse est un compte Google), puis redéfinir un mot de passe dans `/account`.
+2. **Demander à l’ADMIN** : dans `/admin/players`, le bouton **« Réinitialiser le mot de passe »** génère un mot de
+   passe temporaire, affiché une seule fois, que l’ADMIN transmet au joueur (WhatsApp, SMS…). Le joueur est
+   déconnecté de tous ses appareils et doit choisir un nouveau mot de passe à sa prochaine connexion
+   (`/change-password`). Le mot de passe temporaire n’est jamais stocké en clair ni journalisé ; seule l’action
+   apparaît dans le journal ADMIN. Le compte ADMIN ne peut pas être réinitialisé depuis l’interface.
 
 ## Configurer Google OAuth
 

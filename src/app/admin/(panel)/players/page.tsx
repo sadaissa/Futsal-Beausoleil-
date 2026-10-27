@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Badge } from "@/components/ui/Badge";
 import { PlayerAvatar } from "@/components/fut/PlayerAvatar";
 import { ConfirmButton } from "@/components/admin/ConfirmButton";
+import { ResetPasswordForm } from "@/components/admin/AdminForms";
 
 export const metadata: Metadata = { title: "Admin · Joueurs" };
 
@@ -20,6 +21,7 @@ export default async function AdminPlayersPage() {
       avatarUrl: true,
       role: true,
       disabled: true,
+      mustChangePassword: true,
       createdAt: true,
       _count: { select: { participations: true } },
     },
@@ -38,6 +40,7 @@ export default async function AdminPlayersPage() {
                   <span className="truncate font-bold">{p.nickname ?? <em className="text-white/40">surnom à choisir</em>}</span>
                   {p.role === "ADMIN" && <Badge tone="gold">ADMIN</Badge>}
                   {p.disabled && <Badge tone="red">Bloqué</Badge>}
+                  {p.mustChangePassword && <Badge>Mot de passe temporaire</Badge>}
                 </div>
                 <div className="truncate text-sm text-white/50">{p.email}</div>
                 <div className="text-xs text-white/40">
@@ -46,7 +49,8 @@ export default async function AdminPlayersPage() {
               </div>
             </div>
             {p.role !== "ADMIN" && (
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap items-start gap-2">
+                <ResetPasswordForm userId={p.id} nickname={p.nickname ?? p.email} />
                 {p.avatarUrl && (
                   <form action={resetPlayerAvatarAction}>
                     <input type="hidden" name="userId" value={p.id} />

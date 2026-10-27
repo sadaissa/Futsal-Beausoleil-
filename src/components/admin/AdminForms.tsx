@@ -4,6 +4,7 @@ import { useActionState, useMemo, useState } from "react";
 import {
   computeMonthAction,
   createSessionAction,
+  resetPlayerPasswordAction,
   saveSettingsAction,
   setParticipantsAction,
   updateSessionAction,
@@ -13,6 +14,7 @@ import { Field } from "@/components/ui/Field";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { ActionFeedback } from "@/components/ui/Alert";
 import { PlayerAvatar } from "@/components/fut/PlayerAvatar";
+import { ConfirmButton } from "./ConfirmButton";
 
 export function SettingsForm({ voteStartTime, voteEndTime }: { voteStartTime: string; voteEndTime: string }) {
   const [state, action] = useActionState(saveSettingsAction, initialActionState);
@@ -137,6 +139,46 @@ export function ComputeMonthForm({ defaultMonth }: { defaultMonth: string }) {
       </div>
       <SubmitButton>Calculer</SubmitButton>
       <ActionFeedback state={state} />
+    </form>
+  );
+}
+
+/** Réinitialisation du mot de passe d'un joueur : affiche le mot de passe temporaire une seule fois. */
+export function ResetPasswordForm({ userId, nickname }: { userId: string; nickname: string }) {
+  const [state, action] = useActionState(resetPlayerPasswordAction, initialActionState);
+  const [copied, setCopied] = useState(false);
+
+  if (state.secret) {
+    return (
+      <div className="w-full rounded-xl border border-gold/40 bg-gold/10 p-3 text-sm sm:w-auto">
+        <div className="text-white/70">Mot de passe temporaire de {nickname} :</div>
+        <div className="mt-1 flex items-center gap-2">
+          <code className="select-all rounded bg-ink-900 px-2 py-1 font-mono text-base text-gold-light">{state.secret}</code>
+          <button
+            type="button"
+            className="rounded-lg bg-white/10 px-2 py-1 text-xs font-semibold hover:bg-white/20"
+            onClick={() => navigator.clipboard?.writeText(state.secret!).then(() => setCopied(true))}
+          >
+            {copied ? "Copié ✓" : "Copier"}
+          </button>
+        </div>
+        <div className="mt-1 text-xs text-white/50">
+          Transmets-le au joueur (il ne sera plus affiché). Il devra le changer à sa prochaine connexion.
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <form action={action}>
+      <input type="hidden" name="userId" value={userId} />
+      <ConfirmButton
+        variant="outline"
+        confirm={`Réinitialiser le mot de passe de ${nickname} ? Il sera déconnecté et recevra un mot de passe temporaire.`}
+      >
+        Réinitialiser le mot de passe
+      </ConfirmButton>
+      {state.error && <p className="mt-1 text-xs text-red-400">{state.error}</p>}
     </form>
   );
 }

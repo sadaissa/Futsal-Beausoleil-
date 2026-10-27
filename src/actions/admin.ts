@@ -1,6 +1,7 @@
 "use server";
 
 import { Prisma } from "@prisma/client";
+import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -10,6 +11,7 @@ import { computeVoteWindow, defaultSessionTitle, fromLocalInput, isMonday } from
 import { getVoteSettings, saveVoteSettings } from "@/lib/settings";
 import { publishSession } from "@/lib/results/publish";
 import { computeAndSaveMonth } from "@/lib/rewards/compute-month";
+import { generateTempPassword } from "@/lib/temp-password";
 import {
   createSessionSchema,
   fieldErrors,
@@ -215,6 +217,32 @@ export async function resetPlayerAvatarAction(formData: FormData): Promise<void>
   await prisma.user.update({ where: { id }, data: { avatarUrl: null } });
   await auditLog(admin.id, "PLAYER_AVATAR_RESET", id);
   revalidatePath("/admin/players");
+}
+
+/**
+ * Réinitialise le mot de passe d'un joueur (mot de passe oublié, sans envoi d'e-mail).
+ * Le mot de passe temporaire est affiché une seule fois à l'ADMIN, qui le transmet au joueur ;
+ * le joueur est déconnecté partout et devra le changer à sa prochaine connexion.
+ */
+export async function resetPlayerPasswordAction(_: ActionState, formData: FormData): Promise<ActionState> {
+  const admin = await assertAdmin();
+  const parsed = idSchema.safeParse(formData.get("userId"));
+  if (!parsed.success) return { error: "Joueur invalide." };
+  const user = await prisma.user.findUnique({ where: { id: parsed.data }, select: { role: true } });
+  // Le compte ADMIN ne peut pas être réinitialisé depuis l'interface.
+  if (!user || user.role === "ADMIN") return { error: "Réinitialisation impossible pour ce compte." };
+
+  const tempPassword = generateTempPassword();
+  await prisma.user.update({
+    where: { id: parsed.data },
+    data: {
+      passwordHash: await bcrypt.hash(tempPassword, 12),
+      mustChangePassword: true,
+      tokenVersion: { increment: 1 },
+    },
+  });
+  await auditLog(admin.id, "PLAYER_PASSWORD_RESET", parsed.data); // jamais le mot de passe lui-même
+  return { ok: true, secret: tempPassword };
 }
 
 // ----------------------------------------------------------------------------- Récompenses
