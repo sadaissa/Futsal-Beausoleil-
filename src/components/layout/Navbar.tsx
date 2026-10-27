@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/guards";
 import { logoutAction } from "@/actions/auth";
@@ -18,9 +19,7 @@ export async function Navbar() {
     <header className="sticky top-0 z-40 border-b border-white/10 bg-ink/80 backdrop-blur no-print">
       <nav className="container-app flex h-16 items-center justify-between gap-4">
         <Link href="/" className="flex items-center gap-2">
-          <span className="heading flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-gold-light to-gold-dark text-lg text-ink">
-            BU
-          </span>
+          <Image src="/logo.png" alt="Beausoleil Ultimate Team" width={44} height={44} priority className="h-11 w-11" />
           <span className="heading hidden text-xl leading-none sm:block">
             Beausoleil <span className="text-gold">Ultimate Team</span>
           </span>
