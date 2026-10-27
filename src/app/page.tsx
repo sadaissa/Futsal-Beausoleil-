@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { getCurrentUser } from "@/lib/guards";
 import { ButtonLink } from "@/components/ui/Button";
 import { FutCard } from "@/components/fut/FutCard";
@@ -6,9 +7,17 @@ export default async function HomePage() {
   const user = await getCurrentUser();
   return (
     <div className="space-y-16">
-      <section className="grid items-center gap-10 pt-4 md:grid-cols-2">
+      <section className="grid grid-cols-[minmax(0,1fr)] items-center gap-10 pt-4 md:grid-cols-2">
         <div>
-          <p className="text-sm font-bold uppercase tracking-[.3em] text-pitch-light">Foot en salle · 5 contre 5 · Lundi soir</p>
+          <Image
+            src="/logo.png"
+            alt="Logo Beausoleil Ultimate Team"
+            width={160}
+            height={160}
+            priority
+            className="mb-4 h-28 w-28 drop-shadow-[0_0_30px_rgba(229,181,58,.35)] sm:h-40 sm:w-40"
+          />
+          <p className="text-xs font-bold uppercase tracking-[.2em] text-pitch-light sm:text-sm sm:tracking-[.3em]">Foot en salle · 5 contre 5 · Lundi soir</p>
           <h1 className="heading mt-3 text-6xl leading-[.9] sm:text-7xl">
             Beausoleil <span className="text-gold-gradient">Ultimate Team</span>
           </h1>
@@ -35,7 +44,8 @@ export default async function HomePage() {
           </div>
         </div>
         <div className="flex items-end justify-center gap-3 sm:gap-5" aria-hidden>
-          <div className="translate-y-6">
+          {/* 3e carte masquée sur téléphone : la rangée dépasserait la largeur de l'écran */}
+          <div className="hidden translate-y-6 sm:block">
             <FutCard nickname="Le Mur" rating={86} votes={6} firstPlaces={1} rank={3} delay={200} />
           </div>
           <FutCard nickname="Zizou" rating={94} votes={9} firstPlaces={5} rank={1} size="lg" />
