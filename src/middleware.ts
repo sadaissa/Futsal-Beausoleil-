@@ -6,7 +6,7 @@ import { authConfig } from "./auth.config";
 // Chaque page et chaque action revérifie les droits côté serveur (défense en profondeur).
 const { auth } = NextAuth(authConfig);
 
-const PUBLIC_PATHS = ["/", "/login", "/register", "/team-of-the-week"];
+const PUBLIC_PATHS = ["/", "/login", "/register", "/team-of-the-week", "/confidentialite"];
 
 export default auth((req) => {
   const { pathname, search } = req.nextUrl;
