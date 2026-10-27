@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { googleEnabled } from "@/auth";
+import { getCurrentUser } from "@/lib/guards";
 import { LoginForm } from "@/components/auth/AuthForms";
 import { GoogleButton } from "@/components/auth/GoogleButton";
 import { Alert } from "@/components/ui/Alert";
@@ -16,6 +18,8 @@ const errors: Record<string, string> = {
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ callbackUrl?: string; error?: string }> }) {
   const { callbackUrl, error } = await searchParams;
   const safe = callbackUrl?.startsWith("/") && !callbackUrl.startsWith("//") ? callbackUrl : undefined;
+  // Déjà connecté (session valide en base) : inutile de se reconnecter.
+  if (await getCurrentUser()) redirect(safe ?? "/sessions");
   return (
     <div className="mx-auto max-w-md">
       <div className="panel space-y-6">

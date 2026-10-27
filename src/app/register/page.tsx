@@ -1,12 +1,15 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { googleEnabled } from "@/auth";
+import { getCurrentUser } from "@/lib/guards";
 import { RegisterForm } from "@/components/auth/AuthForms";
 import { GoogleButton } from "@/components/auth/GoogleButton";
 
 export const metadata: Metadata = { title: "Inscription" };
 
-export default function RegisterPage() {
+export default async function RegisterPage() {
+  if (await getCurrentUser()) redirect("/sessions");
   return (
     <div className="mx-auto max-w-md">
       <div className="panel space-y-6">

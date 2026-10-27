@@ -12,6 +12,7 @@ export type CurrentUser = {
   role: "ADMIN" | "PLAYER";
   nickname: string | null;
   avatarUrl: string | null;
+  mustChangePassword: boolean;
 };
 
 export async function getCurrentUser(): Promise<CurrentUser | null> {
@@ -19,17 +20,36 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   if (!session?.user?.id) return null;
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { id: true, email: true, role: true, nickname: true, avatarUrl: true, disabled: true },
+    select: {
+      id: true,
+      email: true,
+      role: true,
+      nickname: true,
+      avatarUrl: true,
+      disabled: true,
+      mustChangePassword: true,
+    },
   });
   if (!user || user.disabled) return null;
-  return { id: user.id, email: user.email, role: user.role, nickname: user.nickname, avatarUrl: user.avatarUrl };
+  return {
+    id: user.id,
+    email: user.email,
+    role: user.role,
+    nickname: user.nickname,
+    avatarUrl: user.avatarUrl,
+    mustChangePassword: user.mustChangePassword,
+  };
 }
 
-/** Utilisateur connecté avec surnom ; sinon redirection vers /login ou /onboarding. */
+/**
+ * Utilisateur connecté avec surnom ; sinon redirection vers /login ou /onboarding.
+ * Un joueur dont le mot de passe a été réinitialisé par l'ADMIN doit d'abord le changer.
+ */
 export async function requireUser(): Promise<CurrentUser & { nickname: string }> {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   if (!user.nickname) redirect("/onboarding");
+  if (user.mustChangePassword) redirect("/change-password");
   return user as CurrentUser & { nickname: string };
 }
 
