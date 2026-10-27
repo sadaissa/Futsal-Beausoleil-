@@ -1,0 +1,260 @@
+// =============================================================================
+// Beausoleil Ultimate Team — schéma de base de données
+// -----------------------------------------------------------------------------
+// Principe d'anonymat : aucun bulletin de vote n'est stocké.
+//   - VoteReceipt indique uniquement QUI a voté (pour empêcher le double vote).
+//   - VoteTally contient des compteurs agrégés par joueur, sans lien avec le votant.
+// Il est donc impossible, même en lisant la base, de savoir qui a voté pour qui.
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  ADMIN
+  PLAYER
+}
+
+enum SessionStatus {
+  SCHEDULED // créée : le vote s'ouvre automatiquement pendant la fenêtre prévue
+  OPEN // vote ouvert manuellement par l'ADMIN
+  CLOSED // vote fermé, résultats pas encore publiés
+  PUBLISHED // Team of the Week calculée et publiée
+}
+
+enum RewardStatus {
+  PENDING // boisson à offrir
+  GIVEN // boisson offerte
+  NO_REWARD // mois sans récompense (pas assez de sessions / joueurs éligibles)
+}
+
+// ----------------------------------------------------------------------------
+// Utilisateurs et authentification (compatible Auth.js / @auth/prisma-adapter)
+// ----------------------------------------------------------------------------
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique // toujours stocké en minuscules
+  emailVerified DateTime?
+  name          String? // nom fourni par Google (non affiché)
+  image         String? // photo Google (non utilisée : on affiche avatarUrl ou les initiales)
+  passwordHash  String? // null pour un compte Google uniquement
+  nickname      String?   @unique // surnom affiché, obligatoire après l'onboarding
+  nicknameKey   String?   @unique // surnom normalisé (minuscules, sans accents) pour l'unicité
+  avatarUrl     String? // photo de profil (Vercel Blob)
+  role          Role      @default(PLAYER)
+  disabled      Boolean   @default(false) // compte bloqué par l'ADMIN
+  tokenVersion  Int       @default(0) // incrémenté pour invalider les sessions JWT existantes
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts       Account[]
+  participations SessionParticipant[]
+  receipts       VoteReceipt[]
+  tallies        VoteTally[]
+  results        SessionResult[]
+  rewardsWon     MonthlyReward[]      @relation("RewardWinner")
+  rewardsOwed    MonthlyReward[]      @relation("RewardLoser")
+  captureEvents  ScreenshotEvent[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+// Requis par l'adaptateur Auth.js (non utilisé : sessions JWT)
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ----------------------------------------------------------------------------
+// Sessions du lundi
+// ----------------------------------------------------------------------------
+
+model GameSession {
+  id           String        @id @default(cuid())
+  title        String // ex. "Lundi 27 octobre 2026"
+  date         DateTime      @unique @db.Date // un seul créneau par lundi
+  status       SessionStatus @default(SCHEDULED)
+  voteOpensAt  DateTime // ouverture automatique du vote (UTC)
+  voteClosesAt DateTime // fermeture automatique du vote (UTC)
+  closedAt     DateTime?
+  publishedAt  DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  participants SessionParticipant[]
+  receipts     VoteReceipt[]
+  tallies      VoteTally[]
+  results      SessionResult[]
+  draws        TieBreakDraw[]
+
+  @@index([status])
+}
+
+// Participant d'une session. L'id du participant (et non l'id utilisateur)
+// est utilisé dans les formulaires : aucun id utilisateur n'est exposé côté client.
+model SessionParticipant {
+  id        String   @id @default(cuid())
+  sessionId String
+  userId    String
+  createdAt DateTime @default(now())
+
+  session GameSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, userId])
+  @@index([userId])
+}
+
+// "A voté" : aucun contenu, aucune heure. La contrainte unique empêche le double vote.
+model VoteReceipt {
+  sessionId String
+  userId    String
+
+  session GameSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([sessionId, userId])
+}
+
+// Compteurs agrégés par joueur et par session, sans aucun lien avec les votants.
+model VoteTally {
+  sessionId String
+  playerId  String
+  top1      Int    @default(0) // nombre de fois classé 1er
+  top2      Int    @default(0)
+  top3      Int    @default(0)
+  top4      Int    @default(0)
+  top5      Int    @default(0)
+  worst     Int    @default(0) // nombre de votes "plus nul"
+
+  session GameSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  player  User        @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@id([sessionId, playerId])
+}
+
+// Résultat figé d'une session, calculé à la publication.
+model SessionResult {
+  id             String  @id @default(cuid())
+  sessionId      String
+  playerId       String
+  topVotes       Int // nombre d'apparitions dans les Top 5
+  firstPlaces    Int
+  secondPlaces   Int
+  worstVotes     Int
+  participations Int // participations cumulées à la date de la session (départage)
+  rank           Int // classement général de la soirée (1 = meilleur)
+  totwRank       Int? // 1..5 si le joueur est dans la Team of the Week
+  isWorst        Boolean @default(false) // "Boulet de la semaine"
+  rating         Int // note FUT calculée à partir des votes
+
+  session GameSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  player  User        @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, playerId])
+  @@index([playerId])
+}
+
+// Tirage au sort traçable : graine + candidats + algorithme permettent de rejouer le tirage.
+model TieBreakDraw {
+  id         String   @id @default(cuid())
+  sessionId  String?
+  month      String? // "2026-10" pour les tirages des récompenses mensuelles
+  context    String // TOP | WORST | MONTHLY_BEST | MONTHLY_WORST
+  candidates Json // ids des joueurs à égalité
+  seed       String // graine aléatoire (hex)
+  algorithm  String // description de l'algorithme utilisé
+  result     Json // ordre obtenu
+  createdAt  DateTime @default(now())
+
+  session GameSession? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([month])
+}
+
+// ----------------------------------------------------------------------------
+// Récompenses mensuelles
+// ----------------------------------------------------------------------------
+
+model MonthlyReward {
+  id          String       @id @default(cuid())
+  month       String       @unique // "2026-10"
+  winnerId    String? // le plus souvent 1er : reçoit la boisson
+  loserId     String? // le plus souvent dernier : offre la boisson
+  winnerCount Int?
+  loserCount  Int?
+  status      RewardStatus @default(PENDING)
+  details     Json // sessions retenues, joueurs éligibles, raison éventuelle
+  computedAt  DateTime     @default(now())
+  givenAt     DateTime?
+
+  winner User? @relation("RewardWinner", fields: [winnerId], references: [id], onDelete: SetNull)
+  loser  User? @relation("RewardLoser", fields: [loserId], references: [id], onDelete: SetNull)
+}
+
+// ----------------------------------------------------------------------------
+// Réglages, sécurité et journalisation
+// ----------------------------------------------------------------------------
+
+// Réglages modifiables depuis l'interface ADMIN (clé / valeur)
+model AppSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+// Tentatives de capture d'écran détectées côté client
+model ScreenshotEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  path      String
+  trigger   String
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+}
+
+// Journal des actions ADMIN (ne contient jamais de données de vote)
+model AdminAuditLog {
+  id        String   @id @default(cuid())
+  actorId   String
+  action    String
+  target    String?
+  meta      Json?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
