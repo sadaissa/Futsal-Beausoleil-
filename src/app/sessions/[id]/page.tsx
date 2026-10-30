@@ -6,7 +6,7 @@ import { requireUser } from "@/lib/guards";
 import { formatDateTime } from "@/lib/dates";
 import { votePhase } from "@/lib/voting/window";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { PhaseBadge } from "@/components/ui/Badge";
+import { GuestBadge, PhaseBadge } from "@/components/ui/Badge";
 import { ButtonLink } from "@/components/ui/Button";
 import { Alert } from "@/components/ui/Alert";
 import { PlayerAvatar } from "@/components/fut/PlayerAvatar";
@@ -24,7 +24,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
     include: {
       participants: {
         orderBy: { user: { nickname: "asc" } },
-        select: { id: true, userId: true, user: { select: { nickname: true, avatarUrl: true } } },
+        select: { id: true, userId: true, user: { select: { nickname: true, avatarUrl: true, isGuest: true } } },
       },
       _count: { select: { receipts: true } },
     },
@@ -42,7 +42,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
       ? await prisma.sessionResult.findMany({
           where: { sessionId: id },
           orderBy: { rank: "asc" },
-          include: { player: { select: { nickname: true, avatarUrl: true } } },
+          include: { player: { select: { nickname: true, avatarUrl: true, isGuest: true } } },
         })
       : [];
 
@@ -59,7 +59,11 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
         <section className="panel space-y-4">
           <h2 className="heading text-2xl">Vote</h2>
           <p className="text-white/70">
-            {session._count.receipts} / {session.participants.length} joueur(s) ont voté.
+            {session._count.receipts} / {session.participants.filter((p) => !p.user.isGuest).length} joueur(s) ont
+            voté.
+            {session.participants.some((p) => p.user.isGuest) && (
+              <span className="text-white/40"> Les invités ne votent pas, mais on peut voter pour eux.</span>
+            )}
           </p>
           {phase === "open" && isParticipant && !hasVoted && (
             <ButtonLink href={`/vote/${session.id}`} className="w-full">
@@ -103,7 +107,9 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
                 >
                   <span className="heading w-7 text-center text-xl text-white/60">{r.rank}</span>
                   <PlayerAvatar nickname={r.player.nickname ?? "?"} avatarUrl={r.player.avatarUrl} size={36} />
-                  <span className="flex-1 truncate font-semibold">{r.player.nickname}</span>
+                  <span className="flex min-w-0 flex-1 items-center gap-2 truncate font-semibold">
+                    {r.player.nickname} {r.player.isGuest && <GuestBadge />}
+                  </span>
                   <span className="text-sm text-white/60">{r.topVotes} vote(s)</span>
                   {r.isWorst && <span className="text-xs font-black uppercase text-red-300">Boulet · {r.worstVotes}</span>}
                 </li>
@@ -117,6 +123,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
                 <li key={p.id} className="flex items-center gap-2 rounded-xl bg-ink-900 p-2">
                   <PlayerAvatar nickname={p.user.nickname ?? "?"} avatarUrl={p.user.avatarUrl} size={32} />
                   <span className="truncate text-sm font-semibold">{p.user.nickname}</span>
+                  {p.user.isGuest && <GuestBadge />}
                 </li>
               ))}
             </ul>

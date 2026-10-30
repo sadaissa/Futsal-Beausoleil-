@@ -53,6 +53,7 @@ model User {
   disabled           Boolean   @default(false) // compte bloqué par l'ADMIN
   tokenVersion       Int       @default(0) // incrémenté pour invalider les sessions JWT existantes
   mustChangePassword Boolean   @default(false) // mot de passe temporaire défini par l'ADMIN
+  isGuest            Boolean   @default(false) // joueur invité ponctuel, sans compte ni connexion possible
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 

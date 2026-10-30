@@ -2,6 +2,7 @@
 
 import { Prisma } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -15,9 +16,11 @@ import { generateTempPassword } from "@/lib/temp-password";
 import {
   createSessionSchema,
   fieldErrors,
+  guestSchema,
   idSchema,
   monthSchema,
   participantsSchema,
+  nicknameKey,
   updateSessionSchema,
   voteSettingsSchema,
 } from "@/lib/validations";
@@ -191,6 +194,68 @@ export async function deleteSessionAction(formData: FormData): Promise<void> {
   redirect("/admin/sessions");
 }
 
+/**
+ * Ajoute un joueur invité (ponctuel, sans compte) et, si une session est indiquée,
+ * le coche directement comme participant. L'invité est conservé dans la liste
+ * pour les sessions suivantes ; il ne peut ni se connecter ni voter.
+ */
+export async function addGuestAction(_: ActionState, formData: FormData): Promise<ActionState> {
+  const admin = await assertAdmin();
+  const parsed = guestSchema.safeParse({
+    name: formData.get("name"),
+    sessionId: formData.get("sessionId") || undefined,
+  });
+  if (!parsed.success) return { fieldErrors: fieldErrors(parsed.error) };
+  const { name, sessionId } = parsed.data;
+
+  if (sessionId) {
+    const session = await prisma.gameSession.findUnique({ where: { id: sessionId }, select: { status: true } });
+    if (!session) return { error: "Session introuvable." };
+    if (session.status === "PUBLISHED") return { error: "Une session publiée ne peut plus être modifiée." };
+  }
+
+  let guestId: string;
+  try {
+    const guest = await prisma.user.create({
+      data: {
+        // Adresse fictive en .invalid (domaine réservé) : aucune connexion ni e-mail possible.
+        email: `invite-${randomBytes(8).toString("hex")}@invite.invalid`,
+        nickname: name,
+        nicknameKey: nicknameKey(name),
+        isGuest: true,
+      },
+    });
+    guestId = guest.id;
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+      return { fieldErrors: { name: "Ce nom est déjà utilisé par un joueur ou un invité. Coche-le dans la liste, ou ajoute une précision (ex. « Karim B. »)." } };
+    }
+    throw e;
+  }
+  if (sessionId) {
+    await prisma.sessionParticipant.create({ data: { sessionId, userId: guestId } });
+  }
+  await auditLog(admin.id, "GUEST_CREATE", guestId, { sessionId });
+  revalidateSessions(sessionId);
+  revalidatePath("/admin/players");
+  return { ok: true, message: sessionId ? `${name} ajouté comme invité à la session.` : `${name} ajouté à la liste des invités.` };
+}
+
+/** Supprime un invité qui n'a jamais participé (une faute de frappe, par exemple). */
+export async function deleteGuestAction(formData: FormData): Promise<void> {
+  const admin = await assertAdmin();
+  const id = idSchema.parse(formData.get("userId"));
+  const guest = await prisma.user.findUnique({
+    where: { id },
+    select: { isGuest: true, _count: { select: { participations: true } } },
+  });
+  // Un invité qui a joué fait partie de l'historique (votes, résultats) : on le garde.
+  if (!guest?.isGuest || guest._count.participations > 0) return;
+  await prisma.user.delete({ where: { id } });
+  await auditLog(admin.id, "GUEST_DELETE", id);
+  revalidatePath("/admin/players");
+}
+
 // ----------------------------------------------------------------------------- Joueurs
 
 export async function togglePlayerDisabledAction(formData: FormData): Promise<void> {
@@ -228,9 +293,9 @@ export async function resetPlayerPasswordAction(_: ActionState, formData: FormDa
   const admin = await assertAdmin();
   const parsed = idSchema.safeParse(formData.get("userId"));
   if (!parsed.success) return { error: "Joueur invalide." };
-  const user = await prisma.user.findUnique({ where: { id: parsed.data }, select: { role: true } });
-  // Le compte ADMIN ne peut pas être réinitialisé depuis l'interface.
-  if (!user || user.role === "ADMIN") return { error: "Réinitialisation impossible pour ce compte." };
+  const user = await prisma.user.findUnique({ where: { id: parsed.data }, select: { role: true, isGuest: true } });
+  // Le compte ADMIN et les invités (sans compte) ne peuvent pas être réinitialisés.
+  if (!user || user.role === "ADMIN" || user.isGuest) return { error: "Réinitialisation impossible pour ce compte." };
 
   const tempPassword = generateTempPassword();
   await prisma.user.update({

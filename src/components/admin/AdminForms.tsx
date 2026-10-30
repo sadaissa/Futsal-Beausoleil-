@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState, useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
 import {
   computeMonthAction,
+  addGuestAction,
   createSessionAction,
   resetPlayerPasswordAction,
   saveSettingsAction,
@@ -15,6 +16,7 @@ import { SubmitButton } from "@/components/ui/SubmitButton";
 import { ActionFeedback } from "@/components/ui/Alert";
 import { PlayerAvatar } from "@/components/fut/PlayerAvatar";
 import { ConfirmButton } from "./ConfirmButton";
+import { GuestBadge } from "@/components/ui/Badge";
 
 export function SettingsForm({ voteStartTime, voteEndTime }: { voteStartTime: string; voteEndTime: string }) {
   const [state, action] = useActionState(saveSettingsAction, initialActionState);
@@ -62,7 +64,7 @@ export function SessionEditForm(props: { sessionId: string; title: string; voteO
   );
 }
 
-type Player = { id: string; nickname: string; avatarUrl: string | null };
+type Player = { id: string; nickname: string; avatarUrl: string | null; isGuest: boolean };
 
 /** Cases à cocher des participants d'une session, avec recherche. */
 export function ParticipantsEditor({
@@ -78,6 +80,9 @@ export function ParticipantsEditor({
 }) {
   const [state, action] = useActionState(setParticipantsAction, initialActionState);
   const [checked, setChecked] = useState(() => new Set(selected));
+  // Resynchronise les cases quand la liste enregistrée change côté serveur (ex. invité ajouté).
+  const selectedKey = [...selected].sort().join(",");
+  useEffect(() => setChecked(new Set(selectedKey ? selectedKey.split(",") : [])), [selectedKey]);
   const [query, setQuery] = useState("");
   const visible = useMemo(
     () => players.filter((p) => p.nickname.toLowerCase().includes(query.toLowerCase())),
@@ -119,6 +124,7 @@ export function ParticipantsEditor({
               />
               <PlayerAvatar nickname={p.nickname} avatarUrl={p.avatarUrl} size={32} />
               <span className="truncate font-semibold">{p.nickname}</span>
+              {p.isGuest && <GuestBadge />}
             </label>
           </li>
         ))}
@@ -179,6 +185,36 @@ export function ResetPasswordForm({ userId, nickname }: { userId: string; nickna
         Réinitialiser le mot de passe
       </ConfirmButton>
       {state.error && <p className="mt-1 text-xs text-red-400">{state.error}</p>}
+    </form>
+  );
+}
+
+/**
+ * Ajout d'un joueur invité (sans compte). Avec `sessionId`, il est aussi coché
+ * comme participant de la session.
+ */
+export function AddGuestForm({ sessionId }: { sessionId?: string }) {
+  const [state, action] = useActionState(addGuestAction, initialActionState);
+  return (
+    <form action={action} className="space-y-2">
+      {sessionId && <input type="hidden" name="sessionId" value={sessionId} />}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
+        <div className="flex-1">
+          <Field
+            label="Ajouter un invité (sans compte)"
+            name="name"
+            placeholder="Ex. Karim"
+            maxLength={20}
+            required
+            error={state.fieldErrors?.name}
+            hint="Joueur ponctuel : on peut voter pour lui, il ne vote pas et n'a pas de récompense mensuelle."
+          />
+        </div>
+        <SubmitButton variant="outline" className="sm:mt-6">
+          Ajouter
+        </SubmitButton>
+      </div>
+      <ActionFeedback state={state} />
     </form>
   );
 }

@@ -36,7 +36,7 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
         // Comparaison systématique pour ne pas révéler l'existence d'un compte par le temps de réponse.
         const hash = user?.passwordHash ?? "$2b$12$P/YVOBVMloT3Uq.q.BV6F.KxoDrDE5jvqSSSlyqz99Lhb5E/yUcwq";
         const valid = await bcrypt.compare(parsed.data.password, hash);
-        if (!user || !user.passwordHash || !valid || user.disabled) throw new InvalidCredentials();
+        if (!user || !user.passwordHash || !valid || user.disabled || user.isGuest) throw new InvalidCredentials();
         return { id: user.id, email: user.email };
       },
     }),
@@ -65,7 +65,7 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
       // Les comptes bloqués par l'ADMIN ne peuvent pas se connecter.
       if (!user.email) return false;
       const existing = await prisma.user.findUnique({ where: { email: user.email.toLowerCase() } });
-      return !existing?.disabled;
+      return !existing?.disabled && !existing?.isGuest;
     },
     /**
      * Le jeton est resynchronisé avec la base à chaque lecture côté serveur :
@@ -77,9 +77,9 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
       if (!uid) return null;
       const dbUser = await prisma.user.findUnique({
         where: { id: uid },
-        select: { id: true, role: true, nickname: true, avatarUrl: true, disabled: true, tokenVersion: true },
+        select: { id: true, role: true, nickname: true, avatarUrl: true, disabled: true, isGuest: true, tokenVersion: true },
       });
-      if (!dbUser || dbUser.disabled) return null;
+      if (!dbUser || dbUser.disabled || dbUser.isGuest) return null;
       const resync =
         trigger === "update" && isValidResyncProof(dbUser.id, dbUser.tokenVersion, (session as { resync?: unknown })?.resync);
       if (user || resync) token.ver = dbUser.tokenVersion;

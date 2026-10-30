@@ -12,7 +12,7 @@ export async function getTeamOfTheWeek(sessionId?: string) {
     include: {
       results: {
         orderBy: { rank: "asc" },
-        include: { player: { select: { nickname: true, avatarUrl: true } } },
+        include: { player: { select: { nickname: true, avatarUrl: true, isGuest: true } } },
       },
       _count: { select: { receipts: true, participants: true } },
     },
@@ -33,6 +33,7 @@ export async function getTeamOfTheWeek(sessionId?: string) {
       votes: r.topVotes,
       firstPlaces: r.firstPlaces,
       rank: r.totwRank!,
+      isGuest: r.player.isGuest,
     })),
     worst: worst && {
       key: worst.id,
@@ -40,6 +41,7 @@ export async function getTeamOfTheWeek(sessionId?: string) {
       avatarUrl: worst.player.avatarUrl,
       rating: worstRating(worst.worstVotes, voters),
       votes: worst.worstVotes,
+      isGuest: worst.player.isGuest,
     },
     ranking: session.results,
   };

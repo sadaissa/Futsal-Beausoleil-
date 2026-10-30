@@ -7,7 +7,13 @@ import { PlayerAvatar } from "@/components/fut/PlayerAvatar";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { Alert } from "@/components/ui/Alert";
 
-export type VoteCandidate = { participantId: string; nickname: string; avatarUrl: string | null; isMe: boolean };
+export type VoteCandidate = {
+  participantId: string;
+  nickname: string;
+  avatarUrl: string | null;
+  isMe: boolean;
+  isGuest: boolean;
+};
 
 /**
  * Interface de vote mobile : on touche les joueurs dans l'ordre (1er → 5e),
@@ -91,6 +97,7 @@ export function VoteForm({ sessionId, candidates }: { sessionId: string; candida
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-semibold">{c.nickname}</span>
                   {c.isMe && <span className="text-xs text-white/40">toi</span>}
+                  {c.isGuest && <span className="text-xs text-white/40">invité</span>}
                 </span>
                 {rank >= 0 && <span className="heading text-2xl text-gold">{rank + 1}</span>}
                 {isWorst && <span className="text-xs font-black uppercase text-red-300">Nul</span>}

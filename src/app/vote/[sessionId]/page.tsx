@@ -22,7 +22,7 @@ export default async function VotePage({ params }: { params: Promise<{ sessionId
     include: {
       participants: {
         orderBy: { user: { nickname: "asc" } },
-        select: { id: true, userId: true, user: { select: { nickname: true, avatarUrl: true } } },
+        select: { id: true, userId: true, user: { select: { nickname: true, avatarUrl: true, isGuest: true } } },
       },
     },
   });
@@ -62,6 +62,7 @@ export default async function VotePage({ params }: { params: Promise<{ sessionId
               nickname: p.user.nickname ?? "Joueur",
               avatarUrl: p.user.avatarUrl,
               isMe: p.userId === user.id,
+              isGuest: p.user.isGuest,
             }))}
           />
         </>
