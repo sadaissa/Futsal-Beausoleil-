@@ -30,8 +30,8 @@ enum SessionStatus {
 }
 
 enum RewardStatus {
-  PENDING // boisson à offrir
-  GIVEN // boisson offerte
+  PENDING // distinctions attribuées (Joueur du mois + dossard du plus nul)
+  GIVEN // ancien statut « boisson offerte » (plus utilisé)
   NO_REWARD // mois sans récompense (pas assez de sessions / joueurs éligibles)
 }
 
@@ -211,8 +211,8 @@ model TieBreakDraw {
 model MonthlyReward {
   id          String       @id @default(cuid())
   month       String       @unique // "2026-10"
-  winnerId    String? // le plus souvent 1er : reçoit la boisson
-  loserId     String? // le plus souvent dernier : offre la boisson
+  winnerId    String? // le plus souvent 1er : « Joueur du mois »
+  loserId     String? // le plus souvent dernier : porte le dossard le mois suivant
   winnerCount Int?
   loserCount  Int?
   status      RewardStatus @default(PENDING)

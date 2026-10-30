@@ -207,7 +207,7 @@ export function AddGuestForm({ sessionId }: { sessionId?: string }) {
             maxLength={20}
             required
             error={state.fieldErrors?.name}
-            hint="Joueur ponctuel : on peut voter pour lui, il ne vote pas et n'a pas de récompense mensuelle."
+            hint="Joueur ponctuel : on peut voter pour lui, il ne vote pas et n'a pas de distinction du mois."
           />
         </div>
         <SubmitButton variant="outline" className="sm:mt-6">

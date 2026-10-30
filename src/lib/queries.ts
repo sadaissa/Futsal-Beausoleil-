@@ -1,6 +1,7 @@
 import "server-only";
 import { prisma } from "./prisma";
 import { worstRating } from "./results/rating";
+import { getHonorsForSession, honorOf } from "./honors";
 
 // Requêtes de lecture partagées entre les pages. Aucune ne renvoie de donnée
 // permettant de relier un votant à ses choix.
@@ -19,6 +20,7 @@ export async function getTeamOfTheWeek(sessionId?: string) {
   });
   if (!session) return null;
   const voters = session._count.receipts;
+  const honors = await getHonorsForSession(session.date);
   const team = session.results.filter((r) => r.totwRank !== null).sort((a, b) => a.totwRank! - b.totwRank!);
   const worst = session.results.find((r) => r.isWorst) ?? null;
   return {
@@ -34,6 +36,7 @@ export async function getTeamOfTheWeek(sessionId?: string) {
       firstPlaces: r.firstPlaces,
       rank: r.totwRank!,
       isGuest: r.player.isGuest,
+      honor: honorOf(r.playerId, honors),
     })),
     worst: worst && {
       key: worst.id,
@@ -42,6 +45,7 @@ export async function getTeamOfTheWeek(sessionId?: string) {
       rating: worstRating(worst.worstVotes, voters),
       votes: worst.worstVotes,
       isGuest: worst.player.isGuest,
+      honor: honorOf(worst.playerId, honors),
     },
     ranking: session.results,
   };

@@ -3,7 +3,8 @@
 Application web du **foot en salle du lundi** (5 contre 5). Chaque semaine, les joueurs élisent anonymement leurs
 **5 meilleurs joueurs** (classés du 1er au 5e) et **le joueur le plus nul**. Le mardi matin, l’application publie la
 **Team of the Week** sous forme de cartes façon FIFA Ultimate Team, avec le « Boulet de la semaine ». Chaque mois, le
-joueur le plus souvent 1er reçoit une boisson… offerte par le plus souvent dernier.
+joueur le plus souvent 1er est élu « Joueur du mois », et le plus souvent dernier porte un dossard « Joueur le plus
+nul du mois » pendant tout le mois suivant.
 
 ---
 
@@ -46,7 +47,7 @@ joueur le plus souvent 1er reçoit une boisson… offerte par le plus souvent de
 - **Comptes** : inscription par e-mail / mot de passe ou Google ; un compte unique par adresse e-mail (un compte Google
   ayant le même e-mail est rattaché au compte existant) ; surnom unique (insensible à la casse et aux accents).
 - **Profil** : photo facultative (sans photo, la carte affiche les initiales), changement de surnom, mot de passe,
-  statistiques personnelles : participations, fois dans le Top 5, fois 1er, fois dernier, récompenses.
+  statistiques personnelles : participations, fois dans le Top 5, fois 1er, fois dernier, distinctions.
 - **Sessions du lundi** : l’ADMIN crée la session, coche les participants, ouvre ou ferme le vote, puis clôture.
 - **Vote** : uniquement pour les participants, une seule fois, avec 5 joueurs classés et 1 joueur le plus nul.
   Voter pour soi-même est autorisé. Le plus nul ne peut pas figurer dans son propre Top 5.
@@ -55,8 +56,8 @@ joueur le plus souvent 1er reçoit une boisson… offerte par le plus souvent de
 - **Team of the Week** : publiée automatiquement le mardi matin (cron), avec 5 cartes FUT sur un terrain en 1-2-2 et
   une carte rouge et noire pour le « Boulet de la semaine ». Page publique et partageable, uniquement après la
   clôture.
-- **Récompense mensuelle** : calculée automatiquement le 1er du mois ; l’ADMIN la marque « offerte » ou « en
-  attente » ; l’historique est conservé.
+- **Distinctions du mois** : calculées automatiquement le 1er du mois ; le « Joueur du mois » (⭐) et le porteur
+  du dossard (🦺) ont un badge partout dans l’application pendant le mois suivant ; l’historique est conservé.
 - **Anti-capture** : filigrane, blocage de la sélection et du clic droit, détection des raccourcis, avertissement et
   journalisation (voir les limites plus bas).
 
@@ -144,14 +145,18 @@ aucun identifiant de compte (ADMIN compris) n’est exposé dans l’interface j
 5. **Note FUT** : `60 + 30 × (part des votants l’ayant mis dans son Top 5) + 9 × (part de 1res places)`, plafonnée à
    99. Pour le Boulet : de 59 à 30 selon la part de votes « plus nul ».
 
-### Récompense mensuelle (`src/lib/rewards/monthly.ts`)
+### Distinctions du mois (`src/lib/rewards/monthly.ts`, `src/lib/honors.ts`)
 
 - Éligibilité : au moins **3 sessions** jouées dans le mois.
 - Seules comptent les sessions ayant au moins **3 participants éligibles**.
-- Gagnant : le plus souvent n°1 de la Team of the Week ; perdant : le plus souvent Boulet.
+- **Joueur du mois** (⭐) : le plus souvent n°1 de la Team of the Week.
+- **Dossard du plus nul** (🦺) : le plus souvent Boulet. Il porte le dossard « Joueur le plus nul du mois » à chaque
+  match pendant **tout le mois suivant**.
 - Égalité : plus de participations dans le mois, puis tirage au sort traçable.
-- Le gagnant ne peut pas être celui qui offre (on prend alors le suivant).
-- Affichage : **« X doit offrir une boisson à Y »**. Une récompense déjà « offerte » n’est jamais recalculée.
+- Un même joueur ne peut pas avoir les deux distinctions (on prend alors le suivant pour le dossard).
+- Pendant le mois suivant, un badge s’affiche à côté du nom des deux joueurs (vote, sessions, cartes FUT, profil,
+  ADMIN). Pour une session passée, ce sont les distinctions en vigueur à la date de la session qui s’affichent.
+- L’ADMIN peut relancer le calcul d’un mois depuis `/admin/rewards` (ex. après une session publiée en retard).
 
 ## Installation en local
 
@@ -229,7 +234,7 @@ Règles :
 - on peut **voter pour un invité**, et il peut entrer dans la **Team of the Week** ou être le **Boulet** (sa carte
   porte un badge « Invité ») ;
 - un invité **ne vote pas** et **ne peut pas se connecter** (adresse fictive en `.invalid`, sans mot de passe) ;
-- il est **exclu des récompenses mensuelles** (ni gagnant, ni perdant, et il ne compte pas dans l’éligibilité des
+- il est **exclu des distinctions du mois** (ni Joueur du mois, ni dossard, et il ne compte pas dans l’éligibilité des
   sessions) ;
 - il est conservé dans la liste pour les sessions suivantes ; un invité qui n’a jamais joué peut être supprimé ;
 - son nom suit les mêmes règles d’unicité que les surnoms : en cas d’homonyme, ajoute une précision (« Karim B. »).

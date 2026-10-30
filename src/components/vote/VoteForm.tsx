@@ -13,6 +13,7 @@ export type VoteCandidate = {
   avatarUrl: string | null;
   isMe: boolean;
   isGuest: boolean;
+  honor: "mvp" | "dossard" | null;
 };
 
 /**
@@ -98,6 +99,8 @@ export function VoteForm({ sessionId, candidates }: { sessionId: string; candida
                   <span className="block truncate font-semibold">{c.nickname}</span>
                   {c.isMe && <span className="text-xs text-white/40">toi</span>}
                   {c.isGuest && <span className="text-xs text-white/40">invité</span>}
+                  {c.honor === "dossard" && <span className="text-xs text-red-300">🦺 dossard</span>}
+                  {c.honor === "mvp" && <span className="text-xs text-gold-light">⭐ joueur du mois</span>}
                 </span>
                 {rank >= 0 && <span className="heading text-2xl text-gold">{rank + 1}</span>}
                 {isWorst && <span className="text-xs font-black uppercase text-red-300">Nul</span>}

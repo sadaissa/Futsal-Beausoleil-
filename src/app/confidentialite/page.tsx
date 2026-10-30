@@ -24,7 +24,7 @@ export default function PrivacyPage() {
             nom et la photo Google ne sont pas affichés dans l’application.
           </li>
           <li>Ta photo de profil, si tu en ajoutes une.</li>
-          <li>Tes participations aux sessions et les résultats agrégés (Team of the Week, récompenses).</li>
+          <li>Tes participations aux sessions et les résultats agrégés (Team of the Week, distinctions du mois).</li>
           <li>
             Le fait que tu as voté pour une session. <strong>Le contenu de ton vote n’est jamais enregistré</strong> :
             seuls des totaux anonymes par joueur sont conservés, sans lien avec le votant.
@@ -35,7 +35,7 @@ export default function PrivacyPage() {
 
       <Section title="Utilisation">
         Ces données servent uniquement au fonctionnement de l’application : connexion, vote, Team of the Week et
-        récompenses mensuelles. Elles ne sont ni vendues, ni partagées, ni utilisées à des fins publicitaires.
+        distinctions du mois. Elles ne sont ni vendues, ni partagées, ni utilisées à des fins publicitaires.
       </Section>
 
       <Section title="Hébergement">

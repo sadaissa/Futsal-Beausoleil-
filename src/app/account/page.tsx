@@ -2,31 +2,48 @@ import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/guards";
 import { getPlayerStats } from "@/lib/queries";
-import { formatMonth } from "@/lib/dates";
+import { formatMonth, shiftMonthKey } from "@/lib/dates";
+import { getCurrentHonors, honorOf } from "@/lib/honors";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatTile } from "@/components/ui/StatTile";
-import { Badge } from "@/components/ui/Badge";
 import { AvatarUploader, NicknameForm, PasswordForm } from "@/components/account/AccountForms";
 
 export const metadata: Metadata = { title: "Mon compte" };
 
 export default async function AccountPage() {
   const user = await requireUser();
-  const [stats, dbUser] = await Promise.all([
+  const [stats, dbUser, honors] = await Promise.all([
     getPlayerStats(user.id),
     prisma.user.findUniqueOrThrow({
       where: { id: user.id },
       select: { passwordHash: true, accounts: { select: { provider: true } }, createdAt: true },
     }),
+    getCurrentHonors(),
   ]);
+  const honor = honorOf(user.id, honors);
   const rewards = [
-    ...stats.won.map((r) => ({ month: r.month, text: `${r.loser?.nickname ?? "?"} te doit une boisson`, tone: "gold" as const, status: r.status })),
-    ...stats.owed.map((r) => ({ month: r.month, text: `Tu dois offrir une boisson à ${r.winner?.nickname ?? "?"}`, tone: "red" as const, status: r.status })),
+    ...stats.won.map((r) => ({ month: r.month, text: "⭐ Joueur du mois", tone: "gold" as const })),
+    ...stats.owed.map((r) => ({
+      month: r.month,
+      text: `🦺 Dossard du plus nul, porté en ${formatMonth(shiftMonthKey(r.month, 1)).split(" ")[0]}`,
+      tone: "red" as const,
+    })),
   ].sort((a, b) => b.month.localeCompare(a.month));
 
   return (
     <div className="space-y-6">
       <PageHeader title="Mon compte" subtitle={user.email} />
+
+      {honor === "dossard" && (
+        <div className="rounded-2xl border border-boulet/50 bg-boulet/15 p-4 text-center font-semibold text-red-200">
+          🦺 Ce mois-ci, tu portes le dossard « Joueur le plus nul du mois » à chaque match. Courage !
+        </div>
+      )}
+      {honor === "mvp" && (
+        <div className="rounded-2xl border border-gold/50 bg-gold/10 p-4 text-center font-semibold text-gold-light">
+          ⭐ Tu es le Joueur du mois ! Profite de ton titre.
+        </div>
+      )}
 
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatTile label="Participations" value={stats.participations} />
@@ -43,9 +60,9 @@ export default async function AccountPage() {
         </section>
 
         <section className="panel space-y-4">
-          <h2 className="heading text-2xl">Récompenses obtenues</h2>
+          <h2 className="heading text-2xl">Distinctions</h2>
           {rewards.length === 0 ? (
-            <p className="text-white/50">Aucune récompense pour l’instant. Joue au moins 3 lundis dans le mois pour être éligible.</p>
+            <p className="text-white/50">Aucune distinction pour l’instant. Joue au moins 3 lundis dans le mois pour être éligible.</p>
           ) : (
             <ul className="space-y-2">
               {rewards.map((r) => (
@@ -54,7 +71,6 @@ export default async function AccountPage() {
                     <div className="text-xs uppercase text-white/40">{formatMonth(r.month)}</div>
                     <div className="font-semibold">{r.text}</div>
                   </div>
-                  <Badge tone={r.status === "GIVEN" ? "green" : r.tone}>{r.status === "GIVEN" ? "Offerte" : "En attente"}</Badge>
                 </li>
               ))}
             </ul>

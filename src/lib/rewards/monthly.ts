@@ -87,7 +87,7 @@ export function computeMonthlyReward(sessions: MonthSession[], seed: SeedProvide
   }
 
   const winner = pickTop(firsts, participations, null, "MONTHLY_BEST", seed, draws);
-  // Le gagnant ne peut pas s'offrir une boisson à lui-même : on l'exclut des perdants.
+  // Un même joueur ne peut pas être à la fois Joueur du mois et porteur du dossard.
   const loser = pickTop(worsts, participations, winner.id, "MONTHLY_WORST", seed, draws);
 
   const reason = !winner.id

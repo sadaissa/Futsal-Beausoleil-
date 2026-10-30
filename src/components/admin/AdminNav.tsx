@@ -5,7 +5,7 @@ const links = [
   { href: "/admin/sessions", label: "Sessions" },
   { href: "/admin/players", label: "Joueurs" },
   { href: "/admin/results", label: "Résultats" },
-  { href: "/admin/rewards", label: "Récompenses" },
+  { href: "/admin/rewards", label: "Distinctions" },
 ];
 
 export function AdminNav() {

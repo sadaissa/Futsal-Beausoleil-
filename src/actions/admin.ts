@@ -322,19 +322,6 @@ export async function computeMonthAction(_: ActionState, formData: FormData): Pr
   revalidatePath("/monthly");
   return {
     ok: true,
-    message: reward.status === "GIVEN" ? "Récompense déjà offerte : non recalculée." : "Récompense calculée.",
+    message: reward.status === "NO_REWARD" ? "Calcul fait : pas de distinction ce mois-ci." : "Distinctions calculées.",
   };
-}
-
-export async function setRewardStatusAction(formData: FormData): Promise<void> {
-  const admin = await assertAdmin();
-  const id = idSchema.parse(formData.get("rewardId"));
-  const status = formData.get("status") === "GIVEN" ? "GIVEN" : "PENDING";
-  await prisma.monthlyReward.updateMany({
-    where: { id, status: { not: "NO_REWARD" } },
-    data: { status, givenAt: status === "GIVEN" ? new Date() : null },
-  });
-  await auditLog(admin.id, `REWARD_${status}`, id);
-  revalidatePath("/admin/rewards");
-  revalidatePath("/monthly");
 }
