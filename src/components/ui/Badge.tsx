@@ -40,3 +40,8 @@ export const statusLabels: Record<SessionStatus, string> = {
   CLOSED: "Vote fermé",
   PUBLISHED: "Publiée",
 };
+
+/** Badge des joueurs invités (ponctuels, sans compte). */
+export function GuestBadge() {
+  return <Badge tone="gray">Invité</Badge>;
+}

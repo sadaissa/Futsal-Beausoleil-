@@ -9,7 +9,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { PhaseBadge, statusLabels } from "@/components/ui/Badge";
 import { StatTile } from "@/components/ui/StatTile";
 import { Alert } from "@/components/ui/Alert";
-import { ParticipantsEditor, SessionEditForm } from "@/components/admin/AdminForms";
+import { AddGuestForm, ParticipantsEditor, SessionEditForm } from "@/components/admin/AdminForms";
 import { ConfirmButton } from "@/components/admin/ConfirmButton";
 
 export const metadata: Metadata = { title: "Admin · Session" };
@@ -19,29 +19,33 @@ export default async function AdminSessionPage({ params }: { params: Promise<{ i
   const session = await prisma.gameSession.findUnique({
     where: { id },
     include: {
-      participants: { select: { userId: true } },
+      participants: { select: { userId: true, user: { select: { isGuest: true } } } },
       _count: { select: { receipts: true } }, // nombre de votants uniquement, jamais leur identité
     },
   });
   if (!session) notFound();
   const players = await prisma.user.findMany({
     where: { nickname: { not: null }, OR: [{ disabled: false }, { id: { in: session.participants.map((p) => p.userId) } }] },
-    orderBy: { nickname: "asc" },
-    select: { id: true, nickname: true, avatarUrl: true },
+    // Joueurs inscrits d'abord, puis les invités.
+    orderBy: [{ isGuest: "asc" }, { nickname: "asc" }],
+    select: { id: true, nickname: true, avatarUrl: true, isGuest: true },
   });
 
   const phase = votePhase(session);
   const published = session.status === "PUBLISHED";
   const voters = session._count.receipts;
+  // Les invités n'ont pas de compte : seuls les joueurs inscrits peuvent voter.
+  const possibleVoters = session.participants.filter((p) => !p.user.isGuest).length;
+  const guests = session.participants.length - possibleVoters;
 
   return (
     <div className="space-y-6">
       <PageHeader title={session.title} subtitle={statusLabels[session.status]} actions={<PhaseBadge phase={phase} />} />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <StatTile label="Participants" value={session.participants.length} />
+        <StatTile label={guests ? `Participants (dont ${guests} invité${guests > 1 ? "s" : ""})` : "Participants"} value={session.participants.length} />
         <StatTile label="Votants" value={voters} accent />
-        <StatTile label="Participation au vote" value={session.participants.length ? `${Math.round((voters / session.participants.length) * 100)} %` : "—"} />
+        <StatTile label="Participation au vote" value={possibleVoters ? `${Math.round((voters / possibleVoters) * 100)} %` : "—"} />
       </div>
 
       <section className="panel space-y-3">
@@ -102,10 +106,15 @@ export default async function AdminSessionPage({ params }: { params: Promise<{ i
           {voters > 0 && !published && <Alert tone="warning">Des votes sont enregistrés : tu peux ajouter des joueurs, plus en retirer.</Alert>}
           <ParticipantsEditor
             sessionId={session.id}
-            players={players.map((p) => ({ id: p.id, nickname: p.nickname!, avatarUrl: p.avatarUrl }))}
+            players={players.map((p) => ({ id: p.id, nickname: p.nickname!, avatarUrl: p.avatarUrl, isGuest: p.isGuest }))}
             selected={session.participants.map((p) => p.userId)}
             locked={published}
           />
+          {!published && (
+            <div className="border-t border-white/10 pt-4">
+              <AddGuestForm sessionId={session.id} />
+            </div>
+          )}
         </section>
         <section className="panel space-y-3">
           <h2 className="heading text-2xl">Réglages de la session</h2>

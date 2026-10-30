@@ -9,6 +9,8 @@ export type FutCardProps = {
   votes: number;
   firstPlaces?: number;
   rank?: number;
+  /** Joueur invité (sans compte) : petit badge sur la carte. */
+  isGuest?: boolean;
   variant?: "gold" | "worst";
   size?: "md" | "lg";
   /** Délai d'animation d'apparition (ms). */
@@ -23,6 +25,7 @@ export function FutCard({
   votes,
   firstPlaces = 0,
   rank,
+  isGuest = false,
   variant = "gold",
   size = "md",
   delay = 0,
@@ -45,6 +48,15 @@ export function FutCard({
             <span className="heading text-[1.6rem] sm:text-4xl">{rating}</span>
             <span className={`heading mt-0.5 text-[10px] tracking-widest sm:text-xs ${sub}`}>{worst ? "NUL" : "TOTW"}</span>
             {rank && !worst && <span className={`heading mt-1 text-[10px] sm:text-xs ${sub}`}>#{rank}</span>}
+            {isGuest && (
+              <span
+                className={`mt-1 rounded px-0.5 text-[7px] font-black uppercase sm:text-[8px] ${
+                  worst ? "bg-white/15 text-white/80" : "bg-ink/15 text-ink/80"
+                }`}
+              >
+                Invité
+              </span>
+            )}
           </div>
 
           {/* Photo ou initiales */}

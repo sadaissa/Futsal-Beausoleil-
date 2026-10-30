@@ -42,7 +42,7 @@ export default async function AdminResultsPage({ searchParams }: { searchParams:
       // Vote terminé mais pas encore publié : totaux agrégés par joueur.
       const tallies = await prisma.voteTally.findMany({
         where: { sessionId: selected.id },
-        include: { player: { select: { nickname: true } } },
+        include: { player: { select: { nickname: true, isGuest: true } } },
       });
       const rows = tallies
         .map((t) => ({ ...t, total: t.top1 + t.top2 + t.top3 + t.top4 + t.top5 }))
@@ -57,7 +57,7 @@ export default async function AdminResultsPage({ searchParams }: { searchParams:
           <ResultsTable
             rows={rows.map((r) => ({
               key: r.playerId,
-              nickname: r.player.nickname ?? "?",
+              nickname: `${r.player.nickname ?? "?"}${r.player.isGuest ? " (invité)" : ""}`,
               total: r.total,
               first: r.top1,
               second: r.top2,
@@ -71,7 +71,7 @@ export default async function AdminResultsPage({ searchParams }: { searchParams:
         prisma.sessionResult.findMany({
           where: { sessionId: selected.id },
           orderBy: { rank: "asc" },
-          include: { player: { select: { nickname: true } } },
+          include: { player: { select: { nickname: true, isGuest: true } } },
         }),
         prisma.tieBreakDraw.findMany({ where: { sessionId: selected.id }, orderBy: { createdAt: "asc" } }),
       ]);
@@ -87,7 +87,7 @@ export default async function AdminResultsPage({ searchParams }: { searchParams:
           <ResultsTable
             rows={results.map((r) => ({
               key: r.id,
-              nickname: r.player.nickname ?? "?",
+              nickname: `${r.player.nickname ?? "?"}${r.player.isGuest ? " (invité)" : ""}`,
               total: r.topVotes,
               first: r.firstPlaces,
               second: r.secondPlaces,

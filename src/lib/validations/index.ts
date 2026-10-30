@@ -84,6 +84,11 @@ export const updateSessionSchema = z
   })
   .refine((d) => d.voteClosesAt > d.voteOpensAt, { message: "La fermeture doit suivre l'ouverture", path: ["voteClosesAt"] });
 
+export const guestSchema = z.object({
+  name: nicknameSchema,
+  sessionId: cuid.optional(),
+});
+
 export const participantsSchema = z.object({
   sessionId: cuid,
   userIds: z.array(cuid).max(60),

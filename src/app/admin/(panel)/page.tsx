@@ -13,13 +13,15 @@ export const metadata: Metadata = { title: "Admin" };
 
 export default async function AdminDashboard() {
   const [players, sessions, settings, current, captures, logs, pendingRewards] = await Promise.all([
-    prisma.user.count({ where: { nickname: { not: null } } }),
+    prisma.user.count({ where: { nickname: { not: null }, isGuest: false } }),
     prisma.gameSession.count(),
     getVoteSettings(),
     prisma.gameSession.findFirst({
       where: { status: { not: "PUBLISHED" } },
       orderBy: { date: "desc" },
-      include: { _count: { select: { receipts: true, participants: true } } },
+      include: {
+        _count: { select: { receipts: true, participants: { where: { user: { isGuest: false } } } } },
+      },
     }),
     prisma.screenshotEvent.findMany({
       orderBy: { createdAt: "desc" },

@@ -17,12 +17,13 @@ joueur le plus souvent 1er reçoit une boisson… offerte par le plus souvent de
 6. [Installation en local](#installation-en-local)
 7. [Variables d’environnement](#variables-denvironnement)
 8. [Créer le compte ADMIN](#créer-le-compte-admin)
-9. [Mot de passe oublié](#mot-de-passe-oublié)
-10. [Configurer Google OAuth](#configurer-google-oauth)
-11. [Déployer sur Vercel](#déployer-sur-vercel)
-12. [Sécurité](#sécurité)
-13. [Protection anti-capture d’écran : limites](#protection-anti-capture-décran--limites)
-14. [Scripts utiles](#scripts-utiles)
+9. [Joueurs invités](#joueurs-invités)
+10. [Mot de passe oublié](#mot-de-passe-oublié)
+11. [Configurer Google OAuth](#configurer-google-oauth)
+12. [Déployer sur Vercel](#déployer-sur-vercel)
+13. [Sécurité](#sécurité)
+14. [Protection anti-capture d’écran : limites](#protection-anti-capture-décran--limites)
+15. [Scripts utiles](#scripts-utiles)
 
 ---
 
@@ -214,6 +215,24 @@ second ADMIN.
 
 > Fais-le immédiatement après la mise en ligne : tant qu’aucun ADMIN n’existe, toute personne connaissant la clé
 > pourrait l’utiliser. Après la création, tu peux supprimer `ADMIN_SETUP_SECRET`.
+
+## Joueurs invités
+
+Pour compléter une équipe, l’ADMIN peut ajouter des **joueurs invités ponctuels, sans compte** :
+
+- depuis la page d’une session (`/admin/sessions/[id]`, « Ajouter un invité ») : l’invité est créé et coché comme
+  participant ;
+- ou depuis `/admin/players` (section « Invités »), puis en le cochant dans une session.
+
+Règles :
+
+- on peut **voter pour un invité**, et il peut entrer dans la **Team of the Week** ou être le **Boulet** (sa carte
+  porte un badge « Invité ») ;
+- un invité **ne vote pas** et **ne peut pas se connecter** (adresse fictive en `.invalid`, sans mot de passe) ;
+- il est **exclu des récompenses mensuelles** (ni gagnant, ni perdant, et il ne compte pas dans l’éligibilité des
+  sessions) ;
+- il est conservé dans la liste pour les sessions suivantes ; un invité qui n’a jamais joué peut être supprimé ;
+- son nom suit les mêmes règles d’unicité que les surnoms : en cas d’homonyme, ajoute une précision (« Karim B. »).
 
 ## Mot de passe oublié
 

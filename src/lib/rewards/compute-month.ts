@@ -18,7 +18,7 @@ export async function computeAndSaveMonth(month: string) {
     orderBy: { date: "asc" },
     select: {
       id: true,
-      participants: { select: { userId: true } },
+      participants: { where: { user: { isGuest: false } }, select: { userId: true } },
       results: { where: { OR: [{ totwRank: 1 }, { isWorst: true }] }, select: { playerId: true, totwRank: true, isWorst: true } },
     },
   });
