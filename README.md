@@ -155,7 +155,7 @@ aucun identifiant de compte (ADMIN compris) n’est exposé dans l’interface j
 
 ## Installation en local
 
-Prérequis : Node.js ≥ 20 et PostgreSQL (local, Docker, ou une base Neon / Supabase gratuite).
+Prérequis : Node.js 22 et PostgreSQL (local, Docker, ou une base Neon / Supabase gratuite).
 
 ```bash
 git clone https://github.com/sadaissa/Futsal-Beausoleil-.git
