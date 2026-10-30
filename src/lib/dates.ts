@@ -84,3 +84,21 @@ export function toLocalInput(date: Date): string {
 export function fromLocalInput(value: string): Date {
   return fromZonedTime(`${value}:00`, APP_TIMEZONE);
 }
+
+/** Décale un mois "YYYY-MM" de `delta` mois. */
+export function shiftMonthKey(month: string, delta: number): string {
+  const [y, m] = month.split("-").map(Number);
+  const total = y * 12 + (m - 1) + delta;
+  return `${Math.floor(total / 12)}-${String((total % 12) + 1).padStart(2, "0")}`;
+}
+
+/** Mois courant "YYYY-MM" dans le fuseau de l'application. */
+export function currentMonthKey(now = new Date()): string {
+  return formatInTimeZone(now, APP_TIMEZONE, "yyyy-MM");
+}
+
+/** "d'octobre 2026", "de novembre 2026" (élision devant une voyelle). */
+export function ofMonth(month: string, withYear = true): string {
+  const label = withYear ? formatMonth(month) : formatMonth(month).split(" ")[0];
+  return /^[aeiouyâéèêîôûh]/i.test(label) ? `d'${label}` : `de ${label}`;
+}

@@ -11,6 +11,8 @@ export type FutCardProps = {
   rank?: number;
   /** Joueur invité (sans compte) : petit badge sur la carte. */
   isGuest?: boolean;
+  /** Distinction du mois en cours : Joueur du mois (⭐) ou porteur du dossard (🦺). */
+  honor?: "mvp" | "dossard" | null;
   variant?: "gold" | "worst";
   size?: "md" | "lg";
   /** Délai d'animation d'apparition (ms). */
@@ -26,6 +28,7 @@ export function FutCard({
   firstPlaces = 0,
   rank,
   isGuest = false,
+  honor = null,
   variant = "gold",
   size = "md",
   delay = 0,
@@ -55,6 +58,11 @@ export function FutCard({
                 }`}
               >
                 Invité
+              </span>
+            )}
+            {honor && (
+              <span className="mt-1 text-sm leading-none" title={honor === "mvp" ? "Joueur du mois" : "Porte le dossard du plus nul du mois"}>
+                {honor === "mvp" ? "⭐" : "🦺"}
               </span>
             )}
           </div>

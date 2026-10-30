@@ -5,13 +5,11 @@ import { monthRange } from "../dates";
 import { computeMonthlyReward } from "./monthly";
 
 /**
- * Calcule (ou recalcule) la récompense d'un mois "YYYY-MM" à partir des sessions publiées.
- * Une récompense déjà marquée "offerte" n'est jamais écrasée.
+ * Calcule (ou recalcule) les distinctions d'un mois "YYYY-MM" à partir des sessions publiées :
+ * « Joueur du mois » (le plus souvent 1er) et dossard du plus nul (le plus souvent dernier),
+ * affichés pendant tout le mois suivant.
  */
 export async function computeAndSaveMonth(month: string) {
-  const existing = await prisma.monthlyReward.findUnique({ where: { month } });
-  if (existing?.status === "GIVEN") return existing;
-
   const { start, end } = monthRange(month);
   const sessions = await prisma.gameSession.findMany({
     where: { status: "PUBLISHED", date: { gte: start, lt: end } },
@@ -45,7 +43,6 @@ export async function computeAndSaveMonth(month: string) {
       reason: outcome.reason,
     } satisfies Prisma.InputJsonObject,
     computedAt: new Date(),
-    givenAt: null,
   };
 
   return prisma.$transaction(async (tx) => {

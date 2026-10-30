@@ -1,13 +1,18 @@
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/guards";
-import { formatMonth } from "@/lib/dates";
+import { formatMonth, ofMonth, previousMonthKey, shiftMonthKey } from "@/lib/dates";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Badge } from "@/components/ui/Badge";
 import { PlayerAvatar } from "@/components/fut/PlayerAvatar";
 
-export const metadata: Metadata = { title: "Récompenses mensuelles" };
+export const metadata: Metadata = { title: "Distinctions du mois" };
 export const dynamic = "force-dynamic";
+
+type Player = { nickname: string | null; avatarUrl: string | null } | null;
+
+/** Mois suivant en toutes lettres, sans l'année : "novembre". */
+const nextMonthName = (month: string) => formatMonth(shiftMonthKey(month, 1)).split(" ")[0];
 
 export default async function MonthlyPage() {
   await requireUser();
@@ -18,19 +23,22 @@ export default async function MonthlyPage() {
       loser: { select: { nickname: true, avatarUrl: true } },
     },
   });
-  const [latest, ...history] = rewards;
+  // En vedette : le mois dont les distinctions sont en vigueur aujourd'hui (le mois précédent),
+  // et non un mois en cours qui aurait été calculé à l'avance.
+  const latest = rewards.find((r) => r.month <= previousMonthKey()) ?? null;
+  const history = rewards.filter((r) => r !== latest && r.month <= previousMonthKey());
 
   return (
     <div className="space-y-8">
       <PageHeader
-        title="Récompense du mois"
-        subtitle="Le plus souvent 1er reçoit une boisson, offerte par le plus souvent dernier. Éligibilité : 3 lundis minimum dans le mois."
+        title="Distinctions du mois"
+        subtitle="Le plus souvent 1er est élu Joueur du mois. Le plus souvent dernier porte le dossard « Joueur le plus nul du mois » pendant tout le mois suivant. Éligibilité : 3 lundis minimum dans le mois."
       />
 
       {!latest ? (
-        <div className="panel text-center text-white/60">Pas encore de récompense calculée. Premier verdict à la fin du mois !</div>
+        <div className="panel text-center text-white/60">Pas encore de verdict. Premier verdict à la fin du mois !</div>
       ) : (
-        <RewardHero reward={latest} />
+        <MonthHero month={latest.month} winner={latest.winner} loser={latest.loser} winnerCount={latest.winnerCount} loserCount={latest.loserCount} details={latest.details} />
       )}
 
       {history.length > 0 && (
@@ -38,21 +46,21 @@ export default async function MonthlyPage() {
           <h2 className="heading mb-3 text-2xl">Historique</h2>
           <ul className="space-y-2">
             {history.map((r) => (
-              <li key={r.id} className="panel flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <div className="text-xs uppercase tracking-wider text-white/40">{formatMonth(r.month)}</div>
-                  <div className="font-semibold">
-                    {r.winner && r.loser ? (
-                      <>
-                        <span className="text-red-300">{r.loser.nickname}</span> doit offrir une boisson à{" "}
-                        <span className="text-gold-light">{r.winner.nickname}</span>
-                      </>
-                    ) : (
-                      <span className="text-white/50">Pas de récompense ce mois-ci</span>
-                    )}
-                  </div>
-                </div>
-                <StatusBadge status={r.status} />
+              <li key={r.id} className="panel space-y-1 py-4">
+                <div className="text-xs uppercase tracking-wider text-white/40">{formatMonth(r.month)}</div>
+                {r.winner && r.loser ? (
+                  <>
+                    <div>
+                      ⭐ Joueur du mois : <span className="font-semibold text-gold-light">{r.winner.nickname}</span>
+                    </div>
+                    <div>
+                      🦺 Dossard porté en {nextMonthName(r.month)} :{" "}
+                      <span className="font-semibold text-red-300">{r.loser.nickname}</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-white/50">Pas de distinction ce mois-ci</div>
+                )}
               </li>
             ))}
           </ul>
@@ -62,53 +70,42 @@ export default async function MonthlyPage() {
   );
 }
 
-function StatusBadge({ status }: { status: "PENDING" | "GIVEN" | "NO_REWARD" }) {
-  if (status === "GIVEN") return <Badge tone="green">Offerte ✓</Badge>;
-  if (status === "PENDING") return <Badge tone="gold">En attente</Badge>;
-  return <Badge>Aucune</Badge>;
-}
-
-type RewardWithPlayers = {
+function MonthHero(props: {
   month: string;
-  status: "PENDING" | "GIVEN" | "NO_REWARD";
+  winner: Player;
+  loser: Player;
   winnerCount: number | null;
   loserCount: number | null;
   details: unknown;
-  winner: { nickname: string | null; avatarUrl: string | null } | null;
-  loser: { nickname: string | null; avatarUrl: string | null } | null;
-};
-
-function RewardHero({ reward }: { reward: RewardWithPlayers }) {
-  const reason = (reward.details as { reason?: string | null } | null)?.reason;
+}) {
+  const { month, winner, loser } = props;
+  const reason = (props.details as { reason?: string | null } | null)?.reason;
+  if (!winner || !loser) {
+    return (
+      <section className="panel text-center">
+        <div className="text-xs font-bold uppercase tracking-[.3em] text-white/40">{formatMonth(month)}</div>
+        <p className="mt-4 text-white/60">Pas de distinction ce mois-ci. {reason}</p>
+      </section>
+    );
+  }
   return (
-    <section className="panel overflow-hidden text-center">
-      <div className="text-xs font-bold uppercase tracking-[.3em] text-white/40">{formatMonth(reward.month)}</div>
-      {reward.winner && reward.loser ? (
-        <>
-          <div className="mt-6 flex items-center justify-center gap-6 sm:gap-12">
-            <div className="flex flex-col items-center gap-2">
-              <PlayerAvatar nickname={reward.loser.nickname ?? "?"} avatarUrl={reward.loser.avatarUrl} size={80} className="ring-boulet" />
-              <div className="heading text-2xl text-red-300">{reward.loser.nickname}</div>
-              <div className="text-xs text-white/50">{reward.loserCount} fois dernier</div>
-            </div>
-            <div className="heading text-5xl text-white/30">→</div>
-            <div className="flex flex-col items-center gap-2">
-              <PlayerAvatar nickname={reward.winner.nickname ?? "?"} avatarUrl={reward.winner.avatarUrl} size={80} />
-              <div className="heading text-2xl text-gold-light">{reward.winner.nickname}</div>
-              <div className="text-xs text-white/50">{reward.winnerCount} fois 1er</div>
-            </div>
-          </div>
-          <p className="heading mt-8 text-3xl sm:text-4xl">
-            <span className="text-red-300">{reward.loser.nickname}</span> doit offrir une boisson à{" "}
-            <span className="text-gold-gradient">{reward.winner.nickname}</span> 🍺
-          </p>
-          <div className="mt-4">
-            <StatusBadge status={reward.status} />
-          </div>
-        </>
-      ) : (
-        <p className="mt-4 text-white/60">Pas de récompense ce mois-ci. {reason}</p>
-      )}
-    </section>
+    <div className="grid gap-4 md:grid-cols-2">
+      <section className="panel flex flex-col items-center gap-3 border-gold/30 text-center">
+        <Badge tone="gold">⭐ Joueur du mois {ofMonth(month)}</Badge>
+        <PlayerAvatar nickname={winner.nickname ?? "?"} avatarUrl={winner.avatarUrl} size={96} />
+        <div className="heading text-4xl text-gold-gradient">{winner.nickname}</div>
+        <div className="text-sm text-white/50">{props.winnerCount} fois 1er de la Team of the Week</div>
+      </section>
+      <section className="panel flex flex-col items-center gap-3 border-boulet/40 bg-gradient-to-b from-boulet-dark/40 to-ink-800 text-center">
+        <Badge tone="red">🦺 Dossard du mois {ofMonth(shiftMonthKey(month, 1), false)}</Badge>
+        <PlayerAvatar nickname={loser.nickname ?? "?"} avatarUrl={loser.avatarUrl} size={96} className="grayscale" />
+        <div className="heading text-4xl text-red-300">{loser.nickname}</div>
+        <div className="text-sm text-white/50">{props.loserCount} fois Boulet de la semaine</div>
+        <p className="mt-2 rounded-xl border border-boulet/40 bg-black/40 px-4 py-3 text-sm text-white/80">
+          Porte le dossard <strong className="text-red-300">« Joueur le plus nul du mois {ofMonth(month, false)} »</strong>{" "}
+          pendant tout le mois {ofMonth(shiftMonthKey(month, 1), false)}.
+        </p>
+      </section>
+    </div>
   );
 }

@@ -3,7 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { formatDateTime } from "@/lib/dates";
 import { deleteGuestAction, resetPlayerAvatarAction, togglePlayerDisabledAction } from "@/actions/admin";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { Badge } from "@/components/ui/Badge";
+import { Badge, HonorBadge } from "@/components/ui/Badge";
+import { getCurrentHonors, honorOf } from "@/lib/honors";
 import { PlayerAvatar } from "@/components/fut/PlayerAvatar";
 import { ConfirmButton } from "@/components/admin/ConfirmButton";
 import { AddGuestForm, ResetPasswordForm } from "@/components/admin/AdminForms";
@@ -12,7 +13,7 @@ export const metadata: Metadata = { title: "Admin · Joueurs" };
 
 /** Gestion des joueurs : aucune donnée de vote individuelle n'est accessible ici. */
 export default async function AdminPlayersPage() {
-  const [players, guests] = await Promise.all([
+  const [players, guests, honors] = await Promise.all([
     prisma.user.findMany({
       where: { isGuest: false },
       orderBy: [{ nickname: "asc" }],
@@ -33,6 +34,7 @@ export default async function AdminPlayersPage() {
       orderBy: { nickname: "asc" },
       select: { id: true, nickname: true, _count: { select: { participations: true } } },
     }),
+    getCurrentHonors(),
   ]);
 
   return (
@@ -48,6 +50,7 @@ export default async function AdminPlayersPage() {
                   <span className="truncate font-bold">{p.nickname ?? <em className="text-white/40">surnom à choisir</em>}</span>
                   {p.role === "ADMIN" && <Badge tone="gold">ADMIN</Badge>}
                   {p.disabled && <Badge tone="red">Bloqué</Badge>}
+                  <HonorBadge honor={honorOf(p.id, honors)} />
                   {p.mustChangePassword && <Badge>Mot de passe temporaire</Badge>}
                 </div>
                 <div className="truncate text-sm text-white/50">{p.email}</div>
@@ -86,7 +89,7 @@ export default async function AdminPlayersPage() {
         <h2 className="heading text-3xl">Invités ({guests.length})</h2>
         <p className="text-sm text-white/50">
           Joueurs ponctuels sans compte. On peut voter pour eux et ils peuvent être élus ; ils ne votent pas et sont
-          exclus des récompenses mensuelles. Coche-les dans une session comme les autres joueurs.
+          exclus des distinctions du mois. Coche-les dans une session comme les autres joueurs.
         </p>
         <div className="panel">
           <AddGuestForm />

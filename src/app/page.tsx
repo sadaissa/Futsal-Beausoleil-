@@ -69,9 +69,11 @@ export default async function HomePage() {
       </section>
 
       <section className="panel text-center">
-        <h2 className="heading text-3xl">Récompense du mois</h2>
+        <h2 className="heading text-3xl">Distinctions du mois</h2>
         <p className="mx-auto mt-2 max-w-xl text-white/70">
-          Le joueur le plus souvent premier gagne une boisson… offerte par celui qui a fini le plus souvent dernier.
+          Le plus souvent premier est élu <strong className="text-gold-light">Joueur du mois</strong>. Le plus souvent
+          dernier porte le dossard <strong className="text-red-300">« Joueur le plus nul du mois »</strong> pendant tout
+          le mois suivant 🦺
         </p>
       </section>
     </div>

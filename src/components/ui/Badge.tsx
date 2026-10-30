@@ -45,3 +45,10 @@ export const statusLabels: Record<SessionStatus, string> = {
 export function GuestBadge() {
   return <Badge tone="gray">Invité</Badge>;
 }
+
+/** Distinction du mois : « Joueur du mois » ou porteur du dossard du plus nul. */
+export function HonorBadge({ honor }: { honor: "mvp" | "dossard" | null | undefined }) {
+  if (honor === "mvp") return <Badge tone="gold">⭐ Joueur du mois</Badge>;
+  if (honor === "dossard") return <Badge tone="red">🦺 Dossard</Badge>;
+  return null;
+}

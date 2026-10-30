@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getVoteSettings } from "@/lib/settings";
 import { formatDateTime } from "@/lib/dates";
 import { votePhase } from "@/lib/voting/window";
+import { getCurrentHonors } from "@/lib/honors";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatTile } from "@/components/ui/StatTile";
 import { PhaseBadge } from "@/components/ui/Badge";
@@ -12,7 +13,7 @@ import { SettingsForm } from "@/components/admin/AdminForms";
 export const metadata: Metadata = { title: "Admin" };
 
 export default async function AdminDashboard() {
-  const [players, sessions, settings, current, captures, logs, pendingRewards] = await Promise.all([
+  const [players, sessions, settings, current, captures, logs, honors] = await Promise.all([
     prisma.user.count({ where: { nickname: { not: null }, isGuest: false } }),
     prisma.gameSession.count(),
     getVoteSettings(),
@@ -29,8 +30,11 @@ export default async function AdminDashboard() {
       include: { user: { select: { nickname: true } } },
     }),
     prisma.adminAuditLog.findMany({ orderBy: { createdAt: "desc" }, take: 10 }),
-    prisma.monthlyReward.count({ where: { status: "PENDING" } }),
+    getCurrentHonors(),
   ]);
+  const dossard = honors.dossardId
+    ? await prisma.user.findUnique({ where: { id: honors.dossardId }, select: { nickname: true } })
+    : null;
 
   return (
     <div className="space-y-6">
@@ -40,7 +44,7 @@ export default async function AdminDashboard() {
         <StatTile label="Joueurs" value={players} />
         <StatTile label="Sessions" value={sessions} />
         <StatTile label="Votants (session en cours)" value={current ? `${current._count.receipts}/${current._count.participants}` : "—"} accent />
-        <StatTile label="Boissons en attente" value={pendingRewards} />
+        <StatTile label="🦺 Dossard ce mois-ci" value={dossard?.nickname ?? "—"} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">

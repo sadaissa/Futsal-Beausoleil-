@@ -6,7 +6,8 @@ import { requireUser } from "@/lib/guards";
 import { formatDateTime } from "@/lib/dates";
 import { votePhase } from "@/lib/voting/window";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { GuestBadge, PhaseBadge } from "@/components/ui/Badge";
+import { GuestBadge, HonorBadge, PhaseBadge } from "@/components/ui/Badge";
+import { getHonorsForSession, honorOf } from "@/lib/honors";
 import { ButtonLink } from "@/components/ui/Button";
 import { Alert } from "@/components/ui/Alert";
 import { PlayerAvatar } from "@/components/fut/PlayerAvatar";
@@ -32,6 +33,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
   if (!session) notFound();
 
   const phase = votePhase(session);
+  const honors = await getHonorsForSession(session.date);
   const isParticipant = session.participants.some((p) => p.userId === user.id);
   const hasVoted = Boolean(
     await prisma.voteReceipt.findUnique({ where: { sessionId_userId: { sessionId: id, userId: user.id } } }),
@@ -109,6 +111,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
                   <PlayerAvatar nickname={r.player.nickname ?? "?"} avatarUrl={r.player.avatarUrl} size={36} />
                   <span className="flex min-w-0 flex-1 items-center gap-2 truncate font-semibold">
                     {r.player.nickname} {r.player.isGuest && <GuestBadge />}
+                    <HonorBadge honor={honorOf(r.playerId, honors)} />
                   </span>
                   <span className="text-sm text-white/60">{r.topVotes} vote(s)</span>
                   {r.isWorst && <span className="text-xs font-black uppercase text-red-300">Boulet · {r.worstVotes}</span>}
@@ -124,6 +127,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
                   <PlayerAvatar nickname={p.user.nickname ?? "?"} avatarUrl={p.user.avatarUrl} size={32} />
                   <span className="truncate text-sm font-semibold">{p.user.nickname}</span>
                   {p.user.isGuest && <GuestBadge />}
+                  <HonorBadge honor={honorOf(p.userId, honors)} />
                 </li>
               ))}
             </ul>

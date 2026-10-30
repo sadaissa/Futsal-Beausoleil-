@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/guards";
 import { isVotingOpen } from "@/lib/voting/window";
+import { getHonorsForSession, honorOf } from "@/lib/honors";
 import { formatDateTime } from "@/lib/dates";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Alert } from "@/components/ui/Alert";
@@ -28,6 +29,7 @@ export default async function VotePage({ params }: { params: Promise<{ sessionId
   });
   if (!session) notFound();
 
+  const honors = await getHonorsForSession(session.date);
   const isParticipant = session.participants.some((p) => p.userId === user.id);
   const hasVoted = await prisma.voteReceipt.findUnique({
     where: { sessionId_userId: { sessionId, userId: user.id } },
@@ -63,6 +65,7 @@ export default async function VotePage({ params }: { params: Promise<{ sessionId
               avatarUrl: p.user.avatarUrl,
               isMe: p.userId === user.id,
               isGuest: p.user.isGuest,
+              honor: honorOf(p.userId, honors),
             }))}
           />
         </>
