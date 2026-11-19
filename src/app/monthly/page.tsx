@@ -5,6 +5,8 @@ import { formatMonth, ofMonth, previousMonthKey, shiftMonthKey } from "@/lib/dat
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Badge } from "@/components/ui/Badge";
 import { PlayerAvatar } from "@/components/fut/PlayerAvatar";
+import { FutsalPitch } from "@/components/fut/FutsalPitch";
+import type { TeamOfMonthEntry } from "@/lib/rewards/monthly";
 
 export const metadata: Metadata = { title: "Distinctions du mois" };
 export const dynamic = "force-dynamic";
@@ -28,6 +30,19 @@ export default async function MonthlyPage() {
   const latest = rewards.find((r) => r.month <= previousMonthKey()) ?? null;
   const history = rewards.filter((r) => r !== latest && r.month <= previousMonthKey());
 
+  // Équipe du mois en vedette : cartes FUT avec photo et surnom.
+  const team = ((latest?.team ?? []) as TeamOfMonthEntry[]).slice(0, 5);
+  const teamIds = [...team, ...history.flatMap((r) => r.team as TeamOfMonthEntry[])].map((t) => t.playerId);
+  const teamPlayers = teamIds.length
+    ? await prisma.user.findMany({
+        where: { id: { in: [...new Set(teamIds)] } },
+        select: { id: true, nickname: true, avatarUrl: true },
+      })
+    : [];
+  const nameOf = (id: string) => teamPlayers.find((p) => p.id === id)?.nickname ?? "?";
+  const countedSessions = Math.max(1, (latest?.details as { countedSessions?: number } | null)?.countedSessions ?? 1);
+  const maxTeamVotes = Math.max(1, ...team.map((t) => t.topVotes));
+
   return (
     <div className="space-y-8">
       <PageHeader
@@ -39,6 +54,37 @@ export default async function MonthlyPage() {
         <div className="panel text-center text-white/60">Pas encore de verdict. Premier verdict à la fin du mois !</div>
       ) : (
         <MonthHero month={latest.month} winner={latest.winner} loser={latest.loser} winnerCount={latest.winnerCount} loserCount={latest.loserCount} details={latest.details} />
+      )}
+
+      {latest && team.length > 0 && (
+        <section className="space-y-3">
+          <div>
+            <h2 className="heading text-3xl">Équipe du mois {ofMonth(latest.month)}</h2>
+            <p className="text-sm text-white/50">
+              Les 5 joueurs le plus souvent dans la Team of the Week du mois ({countedSessions} session
+              {countedSessions > 1 ? "s" : ""} retenue{countedSessions > 1 ? "s" : ""}).
+            </p>
+          </div>
+          <FutsalPitch
+            players={team.map((t) => {
+              const player = teamPlayers.find((p) => p.id === t.playerId);
+              return {
+                key: t.playerId,
+                nickname: player?.nickname ?? "Joueur",
+                avatarUrl: player?.avatarUrl ?? null,
+                // Note : présences dans la Team of the Week (sur les sessions retenues),
+                // affinée par les votes Top 5 reçus par rapport au meilleur de l'équipe.
+                rating: Math.min(99, Math.round(60 + 30 * (t.appearances / countedSessions) + 9 * (t.topVotes / maxTeamVotes))),
+                ratingLabel: "MOIS",
+                votes: t.appearances,
+                firstPlaces: t.topVotes,
+                statLabels: ["TOTW", "votes"] as [string, string],
+                rank: t.rank,
+                honor: t.playerId === latest.winnerId ? ("mvp" as const) : null,
+              };
+            })}
+          />
+        </section>
       )}
 
       {history.length > 0 && (
@@ -60,6 +106,11 @@ export default async function MonthlyPage() {
                   </>
                 ) : (
                   <div className="text-white/50">Pas de distinction ce mois-ci</div>
+                )}
+                {(r.team as TeamOfMonthEntry[]).length > 0 && (
+                  <div className="text-sm text-white/60">
+                    🏆 Équipe du mois : {(r.team as TeamOfMonthEntry[]).map((t) => nameOf(t.playerId)).join(", ")}
+                  </div>
                 )}
               </li>
             ))}

@@ -15,6 +15,10 @@ export type FutCardProps = {
   honor?: "mvp" | "dossard" | null;
   variant?: "gold" | "worst";
   size?: "md" | "lg";
+  /** Libellés des deux statistiques (par défaut « votes » et « 1res »). */
+  statLabels?: [string, string];
+  /** Libellé sous la note (par défaut « TOTW », ou « NUL » pour le Boulet). */
+  ratingLabel?: string;
   /** Délai d'animation d'apparition (ms). */
   delay?: number;
 };
@@ -31,6 +35,8 @@ export function FutCard({
   honor = null,
   variant = "gold",
   size = "md",
+  statLabels = ["votes", "1res"],
+  ratingLabel,
   delay = 0,
 }: FutCardProps) {
   const worst = variant === "worst";
@@ -49,7 +55,7 @@ export function FutCard({
           {/* Note et libellé */}
           <div className={`absolute left-[12%] top-[11%] flex flex-col items-center leading-none ${ink}`}>
             <span className="heading text-[1.6rem] sm:text-4xl">{rating}</span>
-            <span className={`heading mt-0.5 text-[10px] tracking-widest sm:text-xs ${sub}`}>{worst ? "NUL" : "TOTW"}</span>
+            <span className={`heading mt-0.5 text-[10px] tracking-widest sm:text-xs ${sub}`}>{ratingLabel ?? (worst ? "NUL" : "TOTW")}</span>
             {rank && !worst && <span className={`heading mt-1 text-[10px] sm:text-xs ${sub}`}>#{rank}</span>}
             {isGuest && (
               <span
@@ -97,12 +103,12 @@ export function FutCard({
           <div className={`mt-1 flex w-[80%] justify-around text-center leading-none ${ink}`}>
             <div>
               <div className="heading text-sm sm:text-lg">{votes}</div>
-              <div className={`text-[8px] font-bold uppercase sm:text-[9px] ${sub}`}>votes</div>
+              <div className={`text-[8px] font-bold uppercase sm:text-[9px] ${sub}`}>{statLabels[0]}</div>
             </div>
             {!worst && (
               <div>
                 <div className="heading text-sm sm:text-lg">{firstPlaces}</div>
-                <div className={`text-[8px] font-bold uppercase sm:text-[9px] ${sub}`}>1res</div>
+                <div className={`text-[8px] font-bold uppercase sm:text-[9px] ${sub}`}>{statLabels[1]}</div>
               </div>
             )}
           </div>

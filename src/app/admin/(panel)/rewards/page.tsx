@@ -4,6 +4,7 @@ import { formatMonth, previousMonthKey } from "@/lib/dates";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Badge } from "@/components/ui/Badge";
 import { ComputeMonthForm } from "@/components/admin/AdminForms";
+import type { TeamOfMonthEntry } from "@/lib/rewards/monthly";
 
 export const metadata: Metadata = { title: "Admin · Distinctions" };
 
@@ -12,12 +13,19 @@ export default async function AdminRewardsPage() {
     orderBy: { month: "desc" },
     include: { winner: { select: { nickname: true } }, loser: { select: { nickname: true } } },
   });
+  const teamIds = [...new Set(rewards.flatMap((r) => (r.team as TeamOfMonthEntry[]).map((t) => t.playerId)))];
+  const names = new Map(
+    (await prisma.user.findMany({ where: { id: { in: teamIds } }, select: { id: true, nickname: true } })).map((u) => [
+      u.id,
+      u.nickname ?? "?",
+    ]),
+  );
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Distinctions du mois"
-        subtitle="Joueur du mois et dossard du plus nul : calcul automatique le 1er de chaque mois. Tu peux aussi lancer ou relancer le calcul manuellement (ex. après une session publiée en retard)."
+        subtitle="Joueur du mois, dossard du plus nul et équipe du mois : calcul automatique le 1er de chaque mois. Tu peux aussi lancer ou relancer le calcul manuellement (ex. après une session publiée en retard)."
       />
       <section className="panel">
         <ComputeMonthForm defaultMonth={previousMonthKey()} />
@@ -40,6 +48,12 @@ export default async function AdminRewardsPage() {
                   </div>
                 ) : (
                   <div className="text-white/60">Pas de distinction · {details.reason}</div>
+                )}
+                {(r.team as TeamOfMonthEntry[]).length > 0 && (
+                  <div className="text-sm text-white/70">
+                    🏆 Équipe du mois :{" "}
+                    {(r.team as TeamOfMonthEntry[]).map((t) => `${names.get(t.playerId) ?? "?"} (${t.appearances}×)`).join(", ")}
+                  </div>
                 )}
                 <div className="text-xs text-white/40">
                   {details.countedSessions ?? 0}/{details.sessions ?? 0} session(s) retenue(s) · {details.eligiblePlayers ?? 0} joueur(s) éligible(s)
