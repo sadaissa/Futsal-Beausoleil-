@@ -217,6 +217,7 @@ model MonthlyReward {
   loserCount  Int?
   status      RewardStatus @default(PENDING)
   details     Json // sessions retenues, joueurs éligibles, raison éventuelle
+  team        Json         @default("[]") // équipe du mois : [{ playerId, rank, appearances, topVotes, firstPlaces }]
   computedAt  DateTime     @default(now())
   givenAt     DateTime?
 

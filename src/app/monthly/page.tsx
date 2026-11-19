@@ -5,6 +5,9 @@ import { formatMonth, ofMonth, previousMonthKey, shiftMonthKey } from "@/lib/dat
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Badge } from "@/components/ui/Badge";
 import { PlayerAvatar } from "@/components/fut/PlayerAvatar";
+import { FutsalPitch } from "@/components/fut/FutsalPitch";
+import { FutCard } from "@/components/fut/FutCard";
+import type { TeamOfMonthEntry } from "@/lib/rewards/monthly";
 
 export const metadata: Metadata = { title: "Distinctions du mois" };
 export const dynamic = "force-dynamic";
@@ -28,6 +31,22 @@ export default async function MonthlyPage() {
   const latest = rewards.find((r) => r.month <= previousMonthKey()) ?? null;
   const history = rewards.filter((r) => r !== latest && r.month <= previousMonthKey());
 
+  // Équipe du mois en vedette : cartes FUT avec photo et surnom.
+  const team = ((latest?.team ?? []) as TeamOfMonthEntry[]).slice(0, 5);
+  const teamIds = [...team, ...history.flatMap((r) => r.team as TeamOfMonthEntry[])].map((t) => t.playerId);
+  const teamPlayers = teamIds.length
+    ? await prisma.user.findMany({
+        where: { id: { in: [...new Set(teamIds)] } },
+        select: { id: true, nickname: true, avatarUrl: true },
+      })
+    : [];
+  const nameOf = (id: string) => teamPlayers.find((p) => p.id === id)?.nickname ?? "?";
+  const countedSessions = Math.max(1, (latest?.details as { countedSessions?: number } | null)?.countedSessions ?? 1);
+  // Notes des cartes du mois, selon le classement de l'équipe : 99 pour le 1er, puis 98, 97, 96… 95 pour le 5e.
+  const POTM_RATING = 99;
+  const monthRating = (t: TeamOfMonthEntry) => POTM_RATING + 1 - t.rank;
+  const winnerEntry = team.find((t) => t.playerId === latest?.winnerId);
+
   return (
     <div className="space-y-8">
       <PageHeader
@@ -38,7 +57,46 @@ export default async function MonthlyPage() {
       {!latest ? (
         <div className="panel text-center text-white/60">Pas encore de verdict. Premier verdict à la fin du mois !</div>
       ) : (
-        <MonthHero month={latest.month} winner={latest.winner} loser={latest.loser} winnerCount={latest.winnerCount} loserCount={latest.loserCount} details={latest.details} />
+        <MonthHero
+          month={latest.month}
+          winner={latest.winner}
+          loser={latest.loser}
+          winnerCount={latest.winnerCount}
+          loserCount={latest.loserCount}
+          details={latest.details}
+          winnerRating={POTM_RATING}
+          winnerAppearances={winnerEntry?.appearances ?? latest.winnerCount ?? 0}
+        />
+      )}
+
+      {latest && team.length > 0 && (
+        <section className="space-y-3">
+          <div>
+            <h2 className="heading text-3xl">Équipe du mois {ofMonth(latest.month)}</h2>
+            <p className="text-sm text-white/50">
+              Les 5 joueurs le plus souvent dans la Team of the Week du mois ({countedSessions} session
+              {countedSessions > 1 ? "s" : ""} retenue{countedSessions > 1 ? "s" : ""}).
+            </p>
+          </div>
+          <FutsalPitch
+            players={team.map((t) => {
+              const player = teamPlayers.find((p) => p.id === t.playerId);
+              return {
+                key: t.playerId,
+                nickname: player?.nickname ?? "Joueur",
+                avatarUrl: player?.avatarUrl ?? null,
+                rating: monthRating(t),
+                ratingLabel: t.playerId === latest.winnerId ? "POTM" : "TOTM",
+                variant: "potm" as const,
+                votes: t.appearances,
+                firstPlaces: t.topVotes,
+                statLabels: ["TOTW", "votes"] as [string, string],
+                rank: t.rank,
+                honor: t.playerId === latest.winnerId ? ("mvp" as const) : null,
+              };
+            })}
+          />
+        </section>
       )}
 
       {history.length > 0 && (
@@ -61,6 +119,11 @@ export default async function MonthlyPage() {
                 ) : (
                   <div className="text-white/50">Pas de distinction ce mois-ci</div>
                 )}
+                {(r.team as TeamOfMonthEntry[]).length > 0 && (
+                  <div className="text-sm text-white/60">
+                    🏆 Équipe du mois : {(r.team as TeamOfMonthEntry[]).map((t) => nameOf(t.playerId)).join(", ")}
+                  </div>
+                )}
               </li>
             ))}
           </ul>
@@ -77,6 +140,8 @@ function MonthHero(props: {
   winnerCount: number | null;
   loserCount: number | null;
   details: unknown;
+  winnerRating: number;
+  winnerAppearances: number;
 }) {
   const { month, winner, loser } = props;
   const reason = (props.details as { reason?: string | null } | null)?.reason;
@@ -90,10 +155,20 @@ function MonthHero(props: {
   }
   return (
     <div className="grid gap-4 md:grid-cols-2">
-      <section className="panel flex flex-col items-center gap-3 border-gold/30 text-center">
+      <section className="panel flex flex-col items-center gap-3 border-sky-300/30 bg-gradient-to-b from-sky-500/15 via-indigo-500/10 to-ink-800 text-center">
         <Badge tone="gold">⭐ Joueur du mois {ofMonth(month)}</Badge>
-        <PlayerAvatar nickname={winner.nickname ?? "?"} avatarUrl={winner.avatarUrl} size={96} />
-        <div className="heading text-4xl text-gold-gradient">{winner.nickname}</div>
+        {/* Carte spéciale « joueur du mois » (bleu ciel vers violet) */}
+        <FutCard
+          nickname={winner.nickname ?? "Joueur"}
+          avatarUrl={winner.avatarUrl}
+          rating={props.winnerRating}
+          ratingLabel="POTM"
+          variant="potm"
+          size="lg"
+          votes={props.winnerCount ?? 0}
+          firstPlaces={props.winnerAppearances}
+          statLabels={["1er", "TOTW"]}
+        />
         <div className="text-sm text-white/50">{props.winnerCount} fois 1er de la Team of the Week</div>
       </section>
       <section className="panel flex flex-col items-center gap-3 border-boulet/40 bg-gradient-to-b from-boulet-dark/40 to-ink-800 text-center">

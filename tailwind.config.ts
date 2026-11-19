@@ -17,6 +17,7 @@ const config: Config = {
       boxShadow: {
         gold: "0 0 0 1px rgba(248,224,142,.55), 0 10px 40px -10px rgba(229,181,58,.55)",
         boulet: "0 0 0 1px rgba(255,120,120,.4), 0 10px 40px -10px rgba(198,40,40,.6)",
+        potm: "0 0 0 1px rgba(190,240,255,.6), 0 10px 40px -8px rgba(80,180,255,.65)",
       },
       keyframes: {
         shine: { "0%": { backgroundPosition: "200% 0" }, "100%": { backgroundPosition: "-200% 0" } },

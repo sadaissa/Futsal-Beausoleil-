@@ -17,7 +17,9 @@ export async function computeAndSaveMonth(month: string) {
     select: {
       id: true,
       participants: { where: { user: { isGuest: false } }, select: { userId: true } },
-      results: { where: { OR: [{ totwRank: 1 }, { isWorst: true }] }, select: { playerId: true, totwRank: true, isWorst: true } },
+      results: {
+        select: { playerId: true, totwRank: true, isWorst: true, topVotes: true, firstPlaces: true, worstVotes: true },
+      },
     },
   });
 
@@ -27,6 +29,10 @@ export async function computeAndSaveMonth(month: string) {
       participantIds: s.participants.map((p) => p.userId),
       firstId: s.results.find((r) => r.totwRank === 1)?.playerId ?? null,
       worstId: s.results.find((r) => r.isWorst)?.playerId ?? null,
+      totw: s.results
+        .filter((r) => r.totwRank !== null)
+        .map((r) => ({ playerId: r.playerId, topVotes: r.topVotes, firstPlaces: r.firstPlaces })),
+      worstVotes: Object.fromEntries(s.results.filter((r) => r.worstVotes > 0).map((r) => [r.playerId, r.worstVotes])),
     })),
   );
 
@@ -36,6 +42,7 @@ export async function computeAndSaveMonth(month: string) {
     winnerCount: outcome.winnerId ? outcome.winnerCount : null,
     loserCount: outcome.loserId ? outcome.loserCount : null,
     status: outcome.winnerId && outcome.loserId ? ("PENDING" as const) : ("NO_REWARD" as const),
+    team: outcome.team satisfies Prisma.InputJsonArray,
     details: {
       sessions: sessions.length,
       countedSessions: outcome.countedSessionIds.length,

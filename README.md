@@ -152,7 +152,13 @@ aucun identifiant de compte (ADMIN compris) n’est exposé dans l’interface j
 - **Joueur du mois** (⭐) : le plus souvent n°1 de la Team of the Week.
 - **Dossard du plus nul** (🦺) : le plus souvent Boulet. Il porte le dossard « Joueur le plus nul du mois » à chaque
   match pendant **tout le mois suivant**.
-- Égalité : plus de participations dans le mois, puis tirage au sort traçable.
+- **Équipe du mois** (🏆) : les 5 joueurs le plus souvent dans la Team of the Week du mois, affichés en cartes
+  FUT sur la page Mensuel.
+- Égalités :
+  - Joueur du mois : plus de participations dans le mois, puis tirage au sort traçable ;
+  - dossard : **total des votes « plus nul » reçus dans le mois** (même les semaines où le joueur n’était pas
+    Boulet), puis participations, puis tirage au sort traçable ;
+  - équipe du mois : votes Top 5 cumulés, puis 1res places, puis participations, puis tirage au sort traçable.
 - Un même joueur ne peut pas avoir les deux distinctions (on prend alors le suivant pour le dossard).
 - Pendant le mois suivant, un badge s’affiche à côté du nom des deux joueurs (vote, sessions, cartes FUT, profil,
   ADMIN). Pour une session passée, ce sont les distinctions en vigueur à la date de la session qui s’affichent.
