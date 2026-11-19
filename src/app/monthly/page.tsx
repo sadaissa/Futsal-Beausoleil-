@@ -42,11 +42,9 @@ export default async function MonthlyPage() {
     : [];
   const nameOf = (id: string) => teamPlayers.find((p) => p.id === id)?.nickname ?? "?";
   const countedSessions = Math.max(1, (latest?.details as { countedSessions?: number } | null)?.countedSessions ?? 1);
-  const maxTeamVotes = Math.max(1, ...team.map((t) => t.topVotes));
-  // Note d'une carte du mois : présences dans la Team of the Week (sur les sessions retenues),
-  // affinée par les votes Top 5 reçus par rapport au meilleur de l'équipe.
-  const monthRating = (t: TeamOfMonthEntry) =>
-    Math.min(99, Math.round(60 + 30 * (t.appearances / countedSessions) + 9 * (t.topVotes / maxTeamVotes)));
+  // Notes des cartes du mois, selon le classement de l'équipe : 99 pour le 1er, puis 98, 97, 96… 95 pour le 5e.
+  const POTM_RATING = 99;
+  const monthRating = (t: TeamOfMonthEntry) => POTM_RATING + 1 - t.rank;
   const winnerEntry = team.find((t) => t.playerId === latest?.winnerId);
 
   return (
@@ -66,11 +64,7 @@ export default async function MonthlyPage() {
           winnerCount={latest.winnerCount}
           loserCount={latest.loserCount}
           details={latest.details}
-          winnerRating={
-            winnerEntry
-              ? monthRating(winnerEntry)
-              : Math.min(99, Math.round(60 + 39 * ((latest.winnerCount ?? 0) / countedSessions)))
-          }
+          winnerRating={POTM_RATING}
           winnerAppearances={winnerEntry?.appearances ?? latest.winnerCount ?? 0}
         />
       )}
