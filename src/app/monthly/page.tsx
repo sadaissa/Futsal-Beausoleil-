@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Badge } from "@/components/ui/Badge";
 import { PlayerAvatar } from "@/components/fut/PlayerAvatar";
 import { FutsalPitch } from "@/components/fut/FutsalPitch";
+import { FutCard } from "@/components/fut/FutCard";
 import type { TeamOfMonthEntry } from "@/lib/rewards/monthly";
 
 export const metadata: Metadata = { title: "Distinctions du mois" };
@@ -42,6 +43,11 @@ export default async function MonthlyPage() {
   const nameOf = (id: string) => teamPlayers.find((p) => p.id === id)?.nickname ?? "?";
   const countedSessions = Math.max(1, (latest?.details as { countedSessions?: number } | null)?.countedSessions ?? 1);
   const maxTeamVotes = Math.max(1, ...team.map((t) => t.topVotes));
+  // Note d'une carte du mois : présences dans la Team of the Week (sur les sessions retenues),
+  // affinée par les votes Top 5 reçus par rapport au meilleur de l'équipe.
+  const monthRating = (t: TeamOfMonthEntry) =>
+    Math.min(99, Math.round(60 + 30 * (t.appearances / countedSessions) + 9 * (t.topVotes / maxTeamVotes)));
+  const winnerEntry = team.find((t) => t.playerId === latest?.winnerId);
 
   return (
     <div className="space-y-8">
@@ -53,7 +59,20 @@ export default async function MonthlyPage() {
       {!latest ? (
         <div className="panel text-center text-white/60">Pas encore de verdict. Premier verdict à la fin du mois !</div>
       ) : (
-        <MonthHero month={latest.month} winner={latest.winner} loser={latest.loser} winnerCount={latest.winnerCount} loserCount={latest.loserCount} details={latest.details} />
+        <MonthHero
+          month={latest.month}
+          winner={latest.winner}
+          loser={latest.loser}
+          winnerCount={latest.winnerCount}
+          loserCount={latest.loserCount}
+          details={latest.details}
+          winnerRating={
+            winnerEntry
+              ? monthRating(winnerEntry)
+              : Math.min(99, Math.round(60 + 39 * ((latest.winnerCount ?? 0) / countedSessions)))
+          }
+          winnerAppearances={winnerEntry?.appearances ?? latest.winnerCount ?? 0}
+        />
       )}
 
       {latest && team.length > 0 && (
@@ -72,10 +91,9 @@ export default async function MonthlyPage() {
                 key: t.playerId,
                 nickname: player?.nickname ?? "Joueur",
                 avatarUrl: player?.avatarUrl ?? null,
-                // Note : présences dans la Team of the Week (sur les sessions retenues),
-                // affinée par les votes Top 5 reçus par rapport au meilleur de l'équipe.
-                rating: Math.min(99, Math.round(60 + 30 * (t.appearances / countedSessions) + 9 * (t.topVotes / maxTeamVotes))),
-                ratingLabel: "MOIS",
+                rating: monthRating(t),
+                ratingLabel: t.playerId === latest.winnerId ? "POTM" : "TOTM",
+                variant: "potm" as const,
                 votes: t.appearances,
                 firstPlaces: t.topVotes,
                 statLabels: ["TOTW", "votes"] as [string, string],
@@ -128,6 +146,8 @@ function MonthHero(props: {
   winnerCount: number | null;
   loserCount: number | null;
   details: unknown;
+  winnerRating: number;
+  winnerAppearances: number;
 }) {
   const { month, winner, loser } = props;
   const reason = (props.details as { reason?: string | null } | null)?.reason;
@@ -141,10 +161,20 @@ function MonthHero(props: {
   }
   return (
     <div className="grid gap-4 md:grid-cols-2">
-      <section className="panel flex flex-col items-center gap-3 border-gold/30 text-center">
+      <section className="panel flex flex-col items-center gap-3 border-sky-300/30 bg-gradient-to-b from-sky-500/15 via-indigo-500/10 to-ink-800 text-center">
         <Badge tone="gold">⭐ Joueur du mois {ofMonth(month)}</Badge>
-        <PlayerAvatar nickname={winner.nickname ?? "?"} avatarUrl={winner.avatarUrl} size={96} />
-        <div className="heading text-4xl text-gold-gradient">{winner.nickname}</div>
+        {/* Carte spéciale « joueur du mois » (bleu ciel vers violet) */}
+        <FutCard
+          nickname={winner.nickname ?? "Joueur"}
+          avatarUrl={winner.avatarUrl}
+          rating={props.winnerRating}
+          ratingLabel="POTM"
+          variant="potm"
+          size="lg"
+          votes={props.winnerCount ?? 0}
+          firstPlaces={props.winnerAppearances}
+          statLabels={["1er", "TOTW"]}
+        />
         <div className="text-sm text-white/50">{props.winnerCount} fois 1er de la Team of the Week</div>
       </section>
       <section className="panel flex flex-col items-center gap-3 border-boulet/40 bg-gradient-to-b from-boulet-dark/40 to-ink-800 text-center">

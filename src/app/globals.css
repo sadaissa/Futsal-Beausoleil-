@@ -67,6 +67,10 @@
 .fut-worst {
   background: linear-gradient(160deg, #3a3a3a 0%, #1c1c1c 35%, #5a0b0b 75%, #c62828 100%);
 }
+.fut-potm {
+  /* Carte « joueur du mois » : bleu ciel vers violet, liseré lumineux */
+  background: linear-gradient(160deg, #e0fbff 0%, #6fe3ff 22%, #4f8dff 55%, #a78bfa 80%, #f0d9ff 100%);
+}
 .fut-inner {
   position: absolute;
   inset: 3px;
@@ -76,6 +80,12 @@
   background:
     radial-gradient(120% 80% at 50% 0%, rgba(255, 255, 255, 0.5), transparent 60%),
     linear-gradient(170deg, #f9e39b 0%, #e2b544 40%, #b9871f 75%, #e9c25c 100%);
+}
+.fut-potm .fut-inner {
+  background:
+    radial-gradient(120% 70% at 50% 0%, rgba(255, 255, 255, 0.45), transparent 60%),
+    repeating-linear-gradient(120deg, transparent 0 28px, rgba(255, 255, 255, 0.07) 28px 34px),
+    linear-gradient(170deg, #54dcff 0%, #27b4f2 30%, #4f6ff0 65%, #8b5cf6 100%);
 }
 .fut-worst .fut-inner {
   background:

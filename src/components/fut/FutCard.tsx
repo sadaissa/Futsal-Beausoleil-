@@ -13,7 +13,8 @@ export type FutCardProps = {
   isGuest?: boolean;
   /** Distinction du mois en cours : Joueur du mois (⭐) ou porteur du dossard (🦺). */
   honor?: "mvp" | "dossard" | null;
-  variant?: "gold" | "worst";
+  /** gold : Team of the Week · worst : Boulet · potm : joueurs du mois (bleu/violet). */
+  variant?: "gold" | "worst" | "potm";
   size?: "md" | "lg";
   /** Libellés des deux statistiques (par défaut « votes » et « 1res »). */
   statLabels?: [string, string];
@@ -40,14 +41,18 @@ export function FutCard({
   delay = 0,
 }: FutCardProps) {
   const worst = variant === "worst";
+  const potm = variant === "potm";
+  const light = worst || potm; // texte clair sur fond sombre
   const width = size === "lg" ? "w-36 sm:w-44" : "w-[7.25rem] sm:w-40";
-  const ink = worst ? "text-white" : "text-ink";
-  const sub = worst ? "text-white/60" : "text-ink/70";
+  const ink = light ? "text-white drop-shadow-[0_1px_1px_rgba(0,0,0,.35)]" : "text-ink";
+  const sub = light ? "text-white/75" : "text-ink/70";
 
   return (
     <div className={`fut-wrap animate-rise ${width}`} style={{ animationDelay: `${delay}ms` }}>
       <div
-        className={`fut-card fut-holo ${worst ? "fut-worst shadow-boulet" : "fut-gold shadow-gold"}`}
+        className={`fut-card fut-holo ${
+          worst ? "fut-worst shadow-boulet" : potm ? "fut-potm shadow-potm" : "fut-gold shadow-gold"
+        }`}
         role="img"
         aria-label={`${nickname}, note ${rating}, ${votes} vote${votes > 1 ? "s" : ""}`}
       >
@@ -60,7 +65,7 @@ export function FutCard({
             {isGuest && (
               <span
                 className={`mt-1 rounded px-0.5 text-[7px] font-black uppercase sm:text-[8px] ${
-                  worst ? "bg-white/15 text-white/80" : "bg-ink/15 text-ink/80"
+                  light ? "bg-white/15 text-white/80" : "bg-ink/15 text-ink/80"
                 }`}
               >
                 Invité
@@ -86,7 +91,7 @@ export function FutCard({
             ) : (
               <span
                 className={`heading flex h-full w-full items-center justify-center rounded-full text-3xl sm:text-5xl ${
-                  worst ? "bg-white/10 text-white/80" : "bg-ink/10 text-ink/80"
+                  light ? "bg-white/15 text-white/90" : "bg-ink/10 text-ink/80"
                 }`}
               >
                 {initials(nickname)}
@@ -95,7 +100,7 @@ export function FutCard({
           </div>
 
           {/* Surnom */}
-          <div className={`mt-[5%] w-[86%] border-b ${worst ? "border-white/20" : "border-ink/25"} pb-1 text-center`}>
+          <div className={`mt-[5%] w-[86%] border-b ${light ? "border-white/30" : "border-ink/25"} pb-1 text-center`}>
             <span className={`heading block truncate text-base sm:text-xl ${ink}`}>{nickname}</span>
           </div>
 
