@@ -322,6 +322,25 @@ export async function computeMonthAction(_: ActionState, formData: FormData): Pr
   revalidatePath("/monthly");
   return {
     ok: true,
-    message: reward.status === "NO_REWARD" ? "Calcul fait : pas de distinction ce mois-ci." : "Distinctions calculées.",
+    message:
+      reward.status === "NO_REWARD"
+        ? "Calcul fait : pas de distinction ce mois-ci."
+        : reward.publishedAt
+          ? "Distinctions recalculées (déjà publiées : la mise à jour est visible)."
+          : "Distinctions calculées. Vérifie-les, puis appuie sur « Publier » pour les dévoiler.",
   };
+}
+
+/**
+ * Publie (ou retire) les distinctions d'un mois : Joueur du mois, dossard et équipe du mois.
+ * Avant publication, elles ne sont visibles que dans l'ADMIN.
+ */
+export async function setMonthPublishedAction(formData: FormData): Promise<void> {
+  const admin = await assertAdmin();
+  const id = idSchema.parse(formData.get("rewardId"));
+  const publish = formData.get("publish") === "1";
+  await prisma.monthlyReward.update({ where: { id }, data: { publishedAt: publish ? new Date() : null } });
+  await auditLog(admin.id, publish ? "MONTH_PUBLISH" : "MONTH_UNPUBLISH", id);
+  // Les badges ⭐ / 🦺 apparaissent sur de nombreuses pages.
+  revalidatePath("/", "layout");
 }

@@ -219,6 +219,7 @@ model MonthlyReward {
   details     Json // sessions retenues, joueurs éligibles, raison éventuelle
   team        Json         @default("[]") // équipe du mois : [{ playerId, rank, appearances, topVotes, firstPlaces }]
   computedAt  DateTime     @default(now())
+  publishedAt DateTime? // null = brouillon, visible uniquement par l'ADMIN
   givenAt     DateTime?
 
   winner User? @relation("RewardWinner", fields: [winnerId], references: [id], onDelete: SetNull)

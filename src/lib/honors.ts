@@ -14,9 +14,10 @@ export async function getHonorsDuring(month: string): Promise<Honors> {
   const rewardedMonth = shiftMonthKey(month, -1);
   const reward = await prisma.monthlyReward.findUnique({
     where: { month: rewardedMonth },
-    select: { winnerId: true, loserId: true, status: true },
+    select: { winnerId: true, loserId: true, status: true, publishedAt: true },
   });
-  const active = reward && reward.status !== "NO_REWARD";
+  // Tant que l'ADMIN n'a pas publié le mois, aucune distinction n'est affichée.
+  const active = reward && reward.publishedAt && reward.status !== "NO_REWARD";
   return {
     mvpId: active ? reward.winnerId : null,
     dossardId: active ? reward.loserId : null,
