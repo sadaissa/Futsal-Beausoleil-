@@ -66,8 +66,8 @@ export async function getPlayerStats(userId: string) {
     prisma.sessionResult.count({ where: { playerId: userId, totwRank: { not: null } } }),
     prisma.sessionResult.count({ where: { playerId: userId, totwRank: 1 } }),
     prisma.sessionResult.count({ where: { playerId: userId, isWorst: true } }),
-    prisma.monthlyReward.findMany({ where: { winnerId: userId }, orderBy: { month: "desc" }, include: { loser: { select: { nickname: true } } } }),
-    prisma.monthlyReward.findMany({ where: { loserId: userId }, orderBy: { month: "desc" }, include: { winner: { select: { nickname: true } } } }),
+    prisma.monthlyReward.findMany({ where: { winnerId: userId, publishedAt: { not: null } }, orderBy: { month: "desc" }, include: { loser: { select: { nickname: true } } } }),
+    prisma.monthlyReward.findMany({ where: { loserId: userId, publishedAt: { not: null } }, orderBy: { month: "desc" }, include: { winner: { select: { nickname: true } } } }),
   ]);
   return { participations, inTeam, firsts, worsts, won, owed };
 }

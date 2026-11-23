@@ -162,7 +162,12 @@ aucun identifiant de compte (ADMIN compris) n’est exposé dans l’interface j
 - Un même joueur ne peut pas avoir les deux distinctions (on prend alors le suivant pour le dossard).
 - Pendant le mois suivant, un badge s’affiche à côté du nom des deux joueurs (vote, sessions, cartes FUT, profil,
   ADMIN). Pour une session passée, ce sont les distinctions en vigueur à la date de la session qui s’affichent.
-- L’ADMIN peut relancer le calcul d’un mois depuis `/admin/rewards` (ex. après une session publiée en retard).
+- **Publication manuelle** : le calcul (automatique le 1er du mois, ou lancé depuis `/admin/rewards`) produit un
+  **brouillon**, visible seulement dans l’ADMIN. Les joueurs ne voient rien (page Mensuel, badges ⭐ / 🦺, équipe du
+  mois) tant que l’ADMIN n’a pas appuyé sur **« Publier »**. Un rappel s’affiche sur le tableau de bord, et la
+  publication peut être retirée.
+- L’ADMIN peut relancer le calcul d’un mois depuis `/admin/rewards` (ex. après une session publiée en retard) ; un mois
+  déjà publié reste publié.
 
 ## Installation en local
 

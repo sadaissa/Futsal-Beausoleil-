@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
-import { formatMonth, previousMonthKey } from "@/lib/dates";
+import { formatDateTime, formatMonth, previousMonthKey } from "@/lib/dates";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Badge } from "@/components/ui/Badge";
 import { ComputeMonthForm } from "@/components/admin/AdminForms";
+import { ConfirmButton } from "@/components/admin/ConfirmButton";
+import { setMonthPublishedAction } from "@/actions/admin";
 import type { TeamOfMonthEntry } from "@/lib/rewards/monthly";
 
 export const metadata: Metadata = { title: "Admin · Distinctions" };
@@ -25,7 +27,7 @@ export default async function AdminRewardsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Distinctions du mois"
-        subtitle="Joueur du mois, dossard du plus nul et équipe du mois : calcul automatique le 1er de chaque mois. Tu peux aussi lancer ou relancer le calcul manuellement (ex. après une session publiée en retard)."
+        subtitle="Joueur du mois, dossard du plus nul et équipe du mois : calcul automatique le 1er de chaque mois, en brouillon. Rien n'est visible des joueurs tant que tu n'as pas appuyé sur « Publier ». Tu peux aussi relancer le calcul (ex. après une session publiée en retard)."
       />
       <section className="panel">
         <ComputeMonthForm defaultMonth={previousMonthKey()} />
@@ -59,7 +61,29 @@ export default async function AdminRewardsPage() {
                   {details.countedSessions ?? 0}/{details.sessions ?? 0} session(s) retenue(s) · {details.eligiblePlayers ?? 0} joueur(s) éligible(s)
                 </div>
               </div>
-              {r.status === "NO_REWARD" && <Badge>Aucune</Badge>}
+              <div className="flex shrink-0 flex-col items-start gap-2 sm:items-end">
+                {r.publishedAt ? (
+                  <Badge tone="green">Publiée le {formatDateTime(r.publishedAt, "dd/MM 'à' HH'h'mm")}</Badge>
+                ) : (
+                  <Badge tone="gold">Brouillon · non visible</Badge>
+                )}
+                {r.status === "NO_REWARD" && <Badge>Aucune distinction</Badge>}
+                <form action={setMonthPublishedAction}>
+                  <input type="hidden" name="rewardId" value={r.id} />
+                  <input type="hidden" name="publish" value={r.publishedAt ? "0" : "1"} />
+                  {r.publishedAt ? (
+                    <ConfirmButton variant="ghost" confirm={`Retirer la publication de ${formatMonth(r.month)} ? Les joueurs ne la verront plus.`}>
+                      Retirer la publication
+                    </ConfirmButton>
+                  ) : (
+                    <ConfirmButton
+                      confirm={`Publier les distinctions de ${formatMonth(r.month)} ? Joueur du mois, dossard et équipe du mois seront visibles de tous.`}
+                    >
+                      🏆 Publier
+                    </ConfirmButton>
+                  )}
+                </form>
+              </div>
             </li>
           );
         })}

@@ -7,7 +7,10 @@ import { isCronAuthorized } from "../auth";
 
 export const dynamic = "force-dynamic";
 
-/** Le 1er de chaque mois : calcule la récompense du mois écoulé. */
+/**
+ * Le 1er de chaque mois : calcule les distinctions du mois écoulé, en brouillon.
+ * Elles restent invisibles des joueurs jusqu'à ce que l'ADMIN les publie.
+ */
 export async function GET(req: Request) {
   if (!isCronAuthorized(req)) return NextResponse.json({ error: "Non autorisé." }, { status: 401 });
   await publishDueSessions(); // au cas où une session du mois n'aurait pas encore été publiée

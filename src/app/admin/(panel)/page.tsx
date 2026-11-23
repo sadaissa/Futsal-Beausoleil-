@@ -5,6 +5,7 @@ import { getVoteSettings } from "@/lib/settings";
 import { formatDateTime } from "@/lib/dates";
 import { votePhase } from "@/lib/voting/window";
 import { getCurrentHonors } from "@/lib/honors";
+import { formatMonth } from "@/lib/dates";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatTile } from "@/components/ui/StatTile";
 import { PhaseBadge } from "@/components/ui/Badge";
@@ -32,6 +33,11 @@ export default async function AdminDashboard() {
     prisma.adminAuditLog.findMany({ orderBy: { createdAt: "desc" }, take: 10 }),
     getCurrentHonors(),
   ]);
+  const draftMonths = await prisma.monthlyReward.findMany({
+    where: { publishedAt: null },
+    orderBy: { month: "desc" },
+    select: { month: true },
+  });
   const dossard = honors.dossardId
     ? await prisma.user.findUnique({ where: { id: honors.dossardId }, select: { nickname: true } })
     : null;
@@ -39,6 +45,15 @@ export default async function AdminDashboard() {
   return (
     <div className="space-y-6">
       <PageHeader title="Tableau de bord" subtitle="Tu ne vois que des résultats agrégés : jamais le détail des votes." />
+
+      {draftMonths.length > 0 && (
+        <Link
+          href="/admin/rewards"
+          className="block rounded-2xl border border-gold/50 bg-gold/10 p-4 font-semibold text-gold-light hover:bg-gold/15"
+        >
+          🏆 Distinctions en attente de publication : {draftMonths.map((d) => formatMonth(d.month)).join(", ")} →
+        </Link>
+      )}
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatTile label="Joueurs" value={players} />

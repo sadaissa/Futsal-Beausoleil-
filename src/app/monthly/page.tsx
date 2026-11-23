@@ -19,7 +19,9 @@ const nextMonthName = (month: string) => formatMonth(shiftMonthKey(month, 1)).sp
 
 export default async function MonthlyPage() {
   await requireUser();
+  // Seuls les mois publiés par l'ADMIN sont visibles.
   const rewards = await prisma.monthlyReward.findMany({
+    where: { publishedAt: { not: null } },
     orderBy: { month: "desc" },
     include: {
       winner: { select: { nickname: true, avatarUrl: true } },
